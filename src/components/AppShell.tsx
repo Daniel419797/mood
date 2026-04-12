@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Brain,
   LayoutDashboard,
   Lightbulb,
+  Menu,
   Settings,
   Utensils,
+  X,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -30,7 +33,25 @@ const navLinks = [
   { href: "/profile", label: "Profile", icon: Settings },
 ];
 
-function UserMenu({ initials, onLogout }: { initials: string; onLogout: () => Promise<void> }) {
+const routeTitles: Record<string, string> = {
+  "/dashboard": "Dashboard",
+  "/mood/history": "Mood History",
+  "/mood/new": "New Mood Entry",
+  "/eating/history": "Eating Log",
+  "/eating/new": "New Meal Entry",
+  "/insights": "Behavioral Insights",
+  "/profile": "Profile",
+};
+
+function UserMenu({
+  initials,
+  onLogout,
+  isMobile,
+}: {
+  initials: string;
+  onLogout: () => Promise<void>;
+  isMobile: boolean;
+}) {
   const { user } = useAuth();
 
   return (
@@ -44,6 +65,17 @@ function UserMenu({ initials, onLogout }: { initials: string; onLogout: () => Pr
         <div className="px-2 py-1.5 text-sm font-medium">{user?.displayName}</div>
         <div className="px-2 pb-1.5 text-xs text-muted-foreground truncate">{user?.email}</div>
         <DropdownMenuSeparator />
+        {isMobile && (
+          <>
+            <DropdownMenuItem>
+              <Link href="/mood/new" className="w-full">Log Mood</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Link href="/eating/new" className="w-full">Log Meal</Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem>
           <Link href="/profile" className="w-full">Profile & Settings</Link>
         </DropdownMenuItem>
@@ -60,7 +92,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const isFocusedComposer = pathname === "/mood/new" || pathname === "/eating/new";
+  const currentTitle = routeTitles[pathname] || "MindfulMorsel";
 
   const initials = (user?.displayName || "U")
     .split(" ")
@@ -73,6 +107,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     await logout();
     router.push("/login");
   };
+
+  const closeMobileSidebar = () => setIsMobileSidebarOpen(false);
 
   if (isFocusedComposer) {
     return (
@@ -111,8 +147,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-muted/40">
-      <div className="grid min-h-screen w-full grid-cols-1 lg:grid-cols-[250px_1fr]">
-        <aside className="hidden border-r bg-background lg:flex lg:flex-col">
+      <div className="grid min-h-screen w-full grid-cols-1 md:grid-cols-[250px_1fr]">
+        <aside className="hidden h-[100dvh] max-h-[100dvh] overflow-y-auto border-r bg-background md:sticky md:top-0 md:flex md:flex-col">
           <div className="flex h-16 items-center border-b px-5">
             <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
               <span className="rounded-md bg-foreground p-1.5 text-background">
@@ -152,41 +188,91 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
+        {isMobileSidebarOpen && (
+          <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
+            <button
+              type="button"
+              onClick={closeMobileSidebar}
+              className="absolute inset-0 bg-black/40"
+              aria-label="Close navigation menu"
+            />
+            <aside className="relative z-10 flex h-[100dvh] max-h-[100dvh] w-[84vw] max-w-[300px] flex-col overflow-y-auto border-r bg-background">
+              <div className="flex h-16 items-center justify-between border-b px-5">
+                <Link href="/dashboard" className="flex items-center gap-2 font-semibold" onClick={closeMobileSidebar}>
+                  <span className="rounded-md bg-foreground p-1.5 text-background">
+                    <Brain className="h-4 w-4" />
+                  </span>
+                  MindfulMorsel
+                </Link>
+                <button
+                  type="button"
+                  onClick={closeMobileSidebar}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border hover:bg-muted"
+                  aria-label="Close menu"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <nav className="space-y-1 px-3 py-4">
+                {navLinks.map(({ href, label, icon: Icon }) => {
+                  const active = pathname.startsWith(href);
+                  return (
+                    <LinkButton
+                      key={href}
+                      href={href}
+                      onClick={closeMobileSidebar}
+                      variant={active ? "secondary" : "ghost"}
+                      className={cn("w-full justify-start gap-2", active && "font-semibold")}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </LinkButton>
+                  );
+                })}
+              </nav>
+            </aside>
+          </div>
+        )}
+
         <div className="min-w-0">
-          <header className="border-b bg-background lg:hidden">
+          <header className="border-b bg-background">
             <div className="flex h-16 items-center justify-between px-4">
-              <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                <span className="rounded-md bg-foreground p-1.5 text-background">
-                  <Brain className="h-4 w-4" />
-                </span>
-                MindfulMorsel
-              </Link>
-              <UserMenu initials={initials} onLogout={handleLogout} />
-            </div>
-            <div className="flex gap-1 overflow-x-auto px-4 pb-3">
-              {navLinks.map(({ href, label, icon: Icon }) => {
-                const active = pathname.startsWith(href);
-                return (
-                  <LinkButton
-                    key={href}
-                    href={href}
-                    size="sm"
-                    variant={active ? "secondary" : "ghost"}
-                    className={cn("shrink-0 gap-1.5", active && "font-semibold")}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {label}
-                  </LinkButton>
-                );
-              })}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileSidebarOpen(true)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border hover:bg-muted md:hidden"
+                  aria-label="Open navigation menu"
+                >
+                  <Menu className="h-4 w-4" />
+                </button>
+                <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                  <span className="rounded-md bg-foreground p-1.5 text-background">
+                    <Brain className="h-4 w-4" />
+                  </span>
+                  MindfulMorsel
+                </Link>
+                <p className="hidden text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground lg:block">
+                  {currentTitle}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="hidden items-center gap-2 md:flex">
+                  <LinkButton href="/mood/new" size="sm">Log Mood</LinkButton>
+                  <LinkButton href="/eating/new" size="sm" variant="outline">Log Meal</LinkButton>
+                </div>
+                <div className="md:hidden">
+                  <UserMenu initials={initials} onLogout={handleLogout} isMobile />
+                </div>
+                <div className="hidden md:block">
+                  <UserMenu initials={initials} onLogout={handleLogout} isMobile={false} />
+                </div>
+              </div>
             </div>
           </header>
 
           <main className="min-w-0 p-4 md:p-6 lg:p-7">{children}</main>
-
-          <div className="fixed bottom-4 right-4 hidden lg:block">
-            <UserMenu initials={initials} onLogout={handleLogout} />
-          </div>
         </div>
       </div>
     </div>
