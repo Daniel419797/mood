@@ -1,103 +1,240 @@
 import Link from "next/link";
-import { ArrowRight, Brain, ChartSpline, ShieldCheck, Utensils } from "lucide-react";
+import {
+  ArrowRight,
+  Brain,
+  ChartSpline,
+  CircleHelp,
+  ShieldCheck,
+  Sparkles,
+  Utensils,
+} from "lucide-react";
 
-const highlights = [
+const valueProps = [
   {
-    icon: Brain,
-    title: "Track emotional patterns",
-    description: "Capture mood, stress, and energy in under 20 seconds and spot shifts over time.",
+    icon: CircleHelp,
+    title: "Emotional Context",
+    description: "Log mood, stress, and energy levels to build a psychological profile of your day.",
   },
   {
-    icon: Utensils,
-    title: "Log meals consistently",
-    description: "Record meals, hunger levels, and food categories to uncover behavior loops.",
-  },
-  {
-    icon: ChartSpline,
-    title: "View actionable insights",
-    description: "Turn your logs into weekly patterns and practical recommendations.",
+    icon: Sparkles,
+    title: "Pattern Engine",
+    description: "Our correlation layer identifies behavioral triggers without requiring clinical expertise.",
   },
   {
     icon: ShieldCheck,
-    title: "Privacy-first by design",
-    description: "Your account data is protected by secure auth and backend policy controls.",
+    title: "Privacy First",
+    description: "Your relationship with food is personal. We use JWT sessions and full data erasure.",
+  },
+];
+
+const processSteps = [
+  {
+    step: "01",
+    label: "Log",
+    title: "Capture your state",
+    description: "Quickly log meals and moods throughout the day. No complex weighing or scanning required.",
+  },
+  {
+    step: "02",
+    label: "Analyze",
+    title: "Find correlations",
+    description: "Our engine groups your data to find statistically grounded links between stress and food.",
+  },
+  {
+    step: "03",
+    label: "Insight",
+    title: "Act on data",
+    description: "Receive human-readable insights and practical suggestions to break the cycle.",
+  },
+];
+
+const capabilityBlocks = [
+  {
+    icon: ChartSpline,
+    title: "Pattern Recognition",
+    description: "Discover how your stress levels directly impact your snack choices.",
+  },
+  {
+    icon: Brain,
+    title: "Mood Trends",
+    description: "Visualize your emotional journey alongside eating frequency over 30 days.",
+  },
+  {
+    icon: Utensils,
+    title: "Hunger Tracking",
+    description: "Understand the difference between physical hunger and emotional cravings.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Sleep & Energy",
+    description: "See how fatigue influences your tendency to skip meals or choose junk food.",
   },
 ];
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_0%_0%,_hsl(var(--primary)/0.18),_transparent_40%),radial-gradient(circle_at_100%_10%,_hsl(30_95%_55%/0.22),_transparent_32%),linear-gradient(180deg,_hsl(var(--background))_0%,_hsl(var(--muted))_100%)]">
-      <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(hsl(var(--foreground)/0.06)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--foreground)/0.06)_1px,transparent_1px)] [background-size:36px_36px]" />
-
-      <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-6 md:px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="rounded-xl bg-primary p-2 text-primary-foreground">
-            <Brain className="h-5 w-5" />
+    <div className="bg-background text-foreground">
+      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 md:px-6">
+          <Link href="/" className="flex items-center gap-2 font-semibold">
+            <span className="rounded-md bg-primary p-1.5 text-primary-foreground">
+              <Brain className="h-4 w-4" />
           </span>
-          <div>
-            <p className="font-heading text-sm uppercase tracking-[0.2em] text-muted-foreground">MoodTracker</p>
-            <p className="text-sm font-semibold">Behavioural Health Journal</p>
-          </div>
+            MindfulMorsel
         </Link>
 
-        <div className="flex items-center gap-2">
-          <Link
-            href="/login"
-            className="inline-flex h-9 items-center rounded-lg px-3 text-sm font-semibold text-foreground transition hover:bg-background/70"
-          >
-            Log in
-          </Link>
+          <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
+            <a href="#methodology" className="transition hover:text-foreground">Methodology</a>
+            <a href="#science" className="transition hover:text-foreground">Science</a>
+            <a href="#pricing" className="transition hover:text-foreground">Pricing</a>
+            <Link href="/login" className="font-medium text-foreground">Sign In</Link>
+          </nav>
+
           <Link
             href="/register"
-            className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/85"
+            className="inline-flex h-10 items-center rounded-lg bg-foreground px-5 text-sm font-semibold text-background transition hover:opacity-90"
           >
-            Get started
+            Get Started
           </Link>
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-20 md:px-6">
-        <section className="grid items-center gap-10 py-12 md:grid-cols-[1.05fr_0.95fr] md:py-18">
+      <main>
+        <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1fr_0.95fr] md:px-6">
           <div>
             <p className="mb-4 inline-flex rounded-full border bg-background/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Daily mental + nutrition intelligence
+              Final Year Project - CS 2025
             </p>
             <h1 className="font-heading text-4xl leading-tight sm:text-5xl md:text-6xl">
-              Understand how your mood and meals influence each other.
+              Track why you eat,
+              <br />
+              not just what.
             </h1>
             <p className="mt-5 max-w-xl text-base text-muted-foreground sm:text-lg">
-              A clean, evidence-driven workspace to track behavior, discover triggers, and build healthier routines week by week.
+              MindfulMorsel uses statistical correlation to uncover hidden links between your emotional states and eating habits.
+              No calories, just context.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/85"
+                className="inline-flex h-11 items-center gap-2 rounded-lg bg-foreground px-5 text-sm font-semibold text-background transition hover:opacity-90"
               >
-                Start tracking
+                Start Free Tracking
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
-                href="/dashboard"
-                className="inline-flex items-center rounded-lg border bg-background/85 px-4 py-2.5 text-sm font-semibold transition hover:bg-background"
+                href="#methodology"
+                className="inline-flex h-11 items-center rounded-lg border px-5 text-sm font-semibold transition hover:bg-muted"
               >
-                Open dashboard
+                View Methodology
               </Link>
             </div>
           </div>
 
-          <div className="rounded-3xl border bg-background/80 p-5 shadow-xl backdrop-blur sm:p-6">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {highlights.map(({ icon: Icon, title, description }) => (
-                <article key={title} className="rounded-2xl border bg-card p-4">
-                  <span className="mb-3 inline-flex rounded-lg bg-primary/10 p-2 text-primary">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <h2 className="text-sm font-semibold">{title}</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+          <div className="rounded-3xl border bg-[linear-gradient(120deg,_hsl(var(--muted))_0%,_hsl(var(--background))_100%)] p-5 sm:p-6">
+            <div className="rounded-2xl border bg-card p-5 shadow-sm">
+              <p className="text-xs font-semibold text-primary">Daily Insight</p>
+              <p className="mt-2 text-xl font-semibold leading-snug">
+                You tend to reach for "Sugary" snacks on days when your stress level is above 4/5.
+              </p>
+              <p className="mt-5 border-t pt-3 text-sm text-muted-foreground">
+                Suggestion: Try a 5-minute breathing exercise when workload is "High".
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-foreground text-background">
+          <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-6 px-4 py-12 text-center sm:grid-cols-4 md:px-6">
+            <div>
+              <p className="font-heading text-4xl">94%</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-background/70">Pattern Accuracy</p>
+            </div>
+            <div>
+              <p className="font-heading text-4xl">7 Days</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-background/70">To First Insight</p>
+            </div>
+            <div>
+              <p className="font-heading text-4xl">0</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-background/70">Calorie Fields</p>
+            </div>
+            <div>
+              <p className="font-heading text-4xl">100%</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-background/70">Private & Secure</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="methodology" className="mx-auto w-full max-w-6xl px-4 py-16 md:px-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">The Gap in Nutrition Tech</p>
+          <h2 className="mt-2 max-w-2xl font-heading text-4xl leading-tight">
+            Calorie counting tells you what.
+            <br />
+            MindfulMorsel tells you why.
+          </h2>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {valueProps.map(({ icon: Icon, title, description }) => (
+              <article key={title} className="rounded-2xl border p-5">
+                <span className="inline-flex rounded-lg border bg-muted p-2">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <h3 className="mt-4 font-semibold">{title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="science" className="bg-muted/55">
+          <div className="mx-auto w-full max-w-6xl px-4 py-16 md:px-6">
+            <div className="mb-8 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">The Process</p>
+                <h2 className="mt-2 font-heading text-4xl">Three steps to awareness</h2>
+              </div>
+              <a
+                href="#pricing"
+                className="inline-flex h-10 items-center rounded-lg border bg-background px-4 text-sm font-semibold transition hover:bg-muted"
+              >
+                See the Science
+              </a>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {processSteps.map((item) => (
+                <article key={item.step} className="rounded-2xl border bg-background p-6">
+                  <div className="mb-4 inline-flex items-center gap-2">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
+                      {item.step}
+                    </span>
+                    <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{item.label}</p>
+                  </div>
+                  <h3 className="font-heading text-2xl">{item.title}</h3>
+                  <p className="mt-3 text-sm text-muted-foreground">{item.description}</p>
                 </article>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section id="pricing" className="mx-auto w-full max-w-6xl px-4 py-16 md:px-6">
+          <h2 className="text-center font-heading text-4xl">Built for self-awareness</h2>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2">
+            {capabilityBlocks.map(({ icon: Icon, title, description }) => (
+              <article key={title} className="rounded-2xl border p-5">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex rounded-lg border bg-muted p-2">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <h3 className="font-semibold">{title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       </main>
