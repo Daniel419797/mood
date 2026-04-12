@@ -69,7 +69,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_hsl(var(--primary)/0.08),_transparent_35%),radial-gradient(circle_at_bottom_right,_hsl(24_90%_50%/0.08),_transparent_35%),hsl(var(--background))] px-4 py-8 md:px-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_hsl(var(--primary)/0.08),_transparent_35%),hsl(var(--background))] px-4 py-8 md:px-6">
       <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-3xl border bg-background/90 shadow-xl backdrop-blur md:grid-cols-[1.08fr_0.92fr]">
         <section className="relative p-8 md:p-10">
           <div className="mb-8 flex items-center gap-2">

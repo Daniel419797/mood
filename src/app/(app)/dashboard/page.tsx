@@ -119,11 +119,11 @@ export default function DashboardPage() {
   );
 
   const pieData = [
-    { name: "Healthy", value: pieTotals.Healthy, color: "#d8d8d8" },
-    { name: "Neutral", value: pieTotals.Neutral, color: "#a8a8a8" },
-    { name: "Sugary", value: pieTotals.Sugary, color: "#111111" },
-    { name: "Junk", value: pieTotals.Junk, color: "#6f6f6f" },
-    { name: "Skipped", value: pieTotals.Skipped, color: "#8f8f8f" },
+    { name: "Healthy", value: pieTotals.Healthy, color: "#ffffff" },
+    { name: "Neutral", value: pieTotals.Neutral, color: "#000000" },
+    { name: "Sugary", value: pieTotals.Sugary, color: "#ffffff" },
+    { name: "Junk", value: pieTotals.Junk, color: "#000000" },
+    { name: "Skipped", value: pieTotals.Skipped, color: "#ffffff" },
   ].filter((item) => item.value > 0);
 
   return (
@@ -174,7 +174,7 @@ export default function DashboardPage() {
                     type="monotone"
                     dataKey="avgMoodScore"
                     name="Mood"
-                    stroke="#111111"
+                    stroke="#000000"
                     dot
                     strokeWidth={2.5}
                   />
@@ -182,7 +182,7 @@ export default function DashboardPage() {
                     type="monotone"
                     dataKey="avgStressLevel"
                     name="Stress"
-                    stroke="#8f8f8f"
+                    stroke="#ffffff"
                     dot={false}
                     strokeWidth={2.2}
                     strokeDasharray="4 2"
@@ -238,7 +238,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="foodCategory" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#101010" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="#000000" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

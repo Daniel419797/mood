@@ -25,11 +25,11 @@ import type { EatingLog } from "@/types";
 import { Pencil, Plus, Trash2, Utensils } from "lucide-react";
 
 const categoryColor: Record<string, string> = {
-  Healthy: "bg-blue-100 text-blue-700",
-  Neutral: "bg-slate-100 text-slate-700",
-  Sugary: "bg-indigo-100 text-indigo-700",
-  Junk: "bg-red-100 text-red-700",
-  Skipped: "bg-amber-100 text-amber-700",
+  Healthy: "bg-white text-black border border-black",
+  Neutral: "bg-black text-white",
+  Sugary: "bg-white text-black border border-black",
+  Junk: "bg-black text-white",
+  Skipped: "bg-white text-black border border-black",
 };
 
 function EatingRow({ entry, onDeleted }: { entry: EatingLog; onDeleted: (id: string) => void }) {

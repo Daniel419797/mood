@@ -17,7 +17,7 @@ function StrengthRing({ value }: { value: number }) {
       <div
         className="relative h-28 w-28 rounded-full"
         style={{
-          background: `conic-gradient(#111111 ${pct}%, #e7e7e7 ${pct}% 100%)`,
+          background: `conic-gradient(#000000 ${pct}%, #ffffff ${pct}% 100%)`,
         }}
       >
         <div className="absolute inset-[14px] flex items-center justify-center rounded-full bg-background text-xs font-semibold">
@@ -182,7 +182,7 @@ export default function InsightsPage() {
       <div className="grid gap-3 md:grid-cols-3">
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <CircleCheck className="h-4 w-4 text-blue-600" />
+            <CircleCheck className="h-4 w-4 text-black" />
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Data Quality</p>
               <p className="font-medium">High ({state.insights.length + 24} Days)</p>
