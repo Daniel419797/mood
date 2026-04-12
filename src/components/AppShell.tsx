@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   Brain,
   LayoutDashboard,
   Lightbulb,
-  PlusCircle,
   Settings,
   Utensils,
 } from "lucide-react";
@@ -60,6 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const isFocusedComposer = pathname === "/mood/new" || pathname === "/eating/new";
 
   const initials = (user?.displayName || "U")
     .split(" ")
@@ -73,21 +74,55 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push("/login");
   };
 
-  return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_hsl(var(--primary)/0.12),_transparent_35%),radial-gradient(circle_at_bottom_right,_hsl(30_90%_55%/0.12),_transparent_35%)]">
-      <div className="mx-auto flex w-full max-w-[1440px] gap-6 p-4 md:p-6">
-        <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-64 shrink-0 flex-col rounded-2xl border bg-background/90 p-4 shadow-sm backdrop-blur lg:flex">
-          <Link href="/dashboard" className="mb-6 flex items-center gap-2 px-2 py-1">
-            <span className="rounded-xl bg-primary p-2 text-primary-foreground">
-              <Brain className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="font-heading text-sm uppercase tracking-[0.2em] text-muted-foreground">MoodTracker</p>
-              <p className="text-sm font-semibold">Personal Dashboard</p>
+  if (isFocusedComposer) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b bg-background">
+          <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 md:px-6">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border hover:bg-muted"
+                aria-label="Go back"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                <span className="rounded-md bg-foreground p-1.5 text-background">
+                  <Brain className="h-4 w-4" />
+                </span>
+                MindfulMorsel
+              </Link>
             </div>
-          </Link>
 
-          <nav className="space-y-1">
+            <div className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
+              <Link href="/#methodology" className="hover:text-foreground">Methodology</Link>
+              <Link href="/#science" className="hover:text-foreground">Science</Link>
+              <button type="button" onClick={() => router.push("/dashboard")} className="font-medium text-foreground">Cancel</button>
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-4xl px-4 py-8 md:px-6">{children}</main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-muted/40">
+      <div className="grid min-h-screen w-full grid-cols-1 lg:grid-cols-[250px_1fr]">
+        <aside className="hidden border-r bg-background lg:flex lg:flex-col">
+          <div className="flex h-16 items-center border-b px-5">
+            <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+              <span className="rounded-md bg-foreground p-1.5 text-background">
+                <Brain className="h-4 w-4" />
+              </span>
+              MindfulMorsel
+            </Link>
+          </div>
+
+          <nav className="space-y-1 px-3 py-4">
             {navLinks.map(({ href, label, icon: Icon }) => {
               const active = pathname.startsWith(href);
               return (
@@ -104,52 +139,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          <div className="mt-6 rounded-xl border bg-muted/40 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Quick Log</p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <LinkButton href="/mood/new" size="sm" className="justify-center">
-                Mood
-              </LinkButton>
-              <LinkButton href="/eating/new" size="sm" variant="outline" className="justify-center">
-                Meal
-              </LinkButton>
+          <div className="mt-auto border-t p-4">
+            <div className="flex items-center gap-3 rounded-xl border p-3">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{user?.displayName}</p>
+                <p className="truncate text-xs text-muted-foreground">Pro Plan</p>
+              </div>
             </div>
-          </div>
-
-          <div className="mt-auto rounded-xl border bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground">Signed in as</p>
-            <p className="truncate text-sm font-semibold">{user?.displayName}</p>
-            <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <header className="sticky top-3 z-40 rounded-2xl border bg-background/90 px-3 py-2 shadow-sm backdrop-blur">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Workspace</p>
-                <p className="font-heading text-lg leading-tight">Welcome back, {user?.displayName?.split(" ")[0]}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80">
-                    <PlusCircle className="h-4 w-4" />
-                    <span>Log</span>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Link href="/mood/new" className="w-full">Log Mood</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Link href="/eating/new" className="w-full">Log Meal</Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <UserMenu initials={initials} onLogout={handleLogout} />
-              </div>
+        <div className="min-w-0">
+          <header className="border-b bg-background lg:hidden">
+            <div className="flex h-16 items-center justify-between px-4">
+              <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                <span className="rounded-md bg-foreground p-1.5 text-background">
+                  <Brain className="h-4 w-4" />
+                </span>
+                MindfulMorsel
+              </Link>
+              <UserMenu initials={initials} onLogout={handleLogout} />
             </div>
-
-            <div className="mt-2 flex gap-1 overflow-x-auto pb-1 lg:hidden">
+            <div className="flex gap-1 overflow-x-auto px-4 pb-3">
               {navLinks.map(({ href, label, icon: Icon }) => {
                 const active = pathname.startsWith(href);
                 return (
@@ -168,7 +182,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="min-w-0 rounded-2xl border bg-background/95 p-4 shadow-sm md:p-6">{children}</main>
+          <main className="min-w-0 p-4 md:p-6 lg:p-7">{children}</main>
+
+          <div className="fixed bottom-4 right-4 hidden lg:block">
+            <UserMenu initials={initials} onLogout={handleLogout} />
+          </div>
         </div>
       </div>
     </div>

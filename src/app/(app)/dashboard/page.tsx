@@ -7,6 +7,9 @@ import {
   Line,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -18,60 +21,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { insightsApi } from "@/services/insights";
-import type { DashboardRange, DashboardResponseDTO, InsightDTO } from "@/types";
+import type { DashboardResponseDTO } from "@/types";
 import {
-  ArrowUpRight,
   Brain,
-  CalendarDays,
   Lightbulb,
-  PlusCircle,
+  Plus,
   Sparkles,
-  TrendingUp,
+  X,
   Utensils,
 } from "lucide-react";
 
 function StatCard({
   label,
   value,
-  hint,
-  icon: Icon,
 }: {
   label: string;
   value: string | number;
-  hint: string;
-  icon: React.ElementType;
 }) {
   return (
-    <Card className="border-muted-foreground/10 bg-card/70">
-      <CardContent className="flex items-start justify-between gap-3 p-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
-          <p className="mt-1 font-heading text-2xl leading-tight">{value}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-        </div>
-        <div className="rounded-xl bg-primary/10 p-2">
-          <Icon className="h-5 w-5 text-primary" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function InsightCard({ insight }: { insight: InsightDTO }) {
-  const pct = Math.round(insight.strengthScore * 100);
-  return (
-    <Card className="border-l-4 border-l-primary bg-card/70">
+    <Card>
       <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <p className="font-medium text-sm">{insight.headline}</p>
-          <Badge variant="secondary" className="shrink-0">
-            {pct}%
-          </Badge>
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">{insight.supportingStat}</p>
-        <p className="mt-2 text-xs italic text-muted-foreground">{insight.suggestion}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+        <p className="mt-1 font-heading text-4xl leading-none">{value}</p>
       </CardContent>
     </Card>
   );
@@ -80,16 +52,15 @@ function InsightCard({ insight }: { insight: InsightDTO }) {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardResponseDTO["data"] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [range, setRange] = useState<DashboardRange>("30d");
 
   useEffect(() => {
     setIsLoading(true);
     insightsApi
-      .getDashboard(range)
+      .getDashboard("30d")
       .then((res) => setData(res.data.data))
       .catch(() => setData(null))
       .finally(() => setIsLoading(false));
-  }, [range]);
+  }, []);
 
   if (isLoading) {
     return (
@@ -135,58 +106,56 @@ export default function DashboardPage() {
     date: format(parseISO(p.date), "MMM d"),
   }));
 
-  const totalFoodLogs = eatingFrequency.reduce((sum, item) => sum + item.count, 0);
-  const averageMood = moodTrend.length
-    ? (moodTrend.reduce((sum, item) => sum + item.avgMoodScore, 0) / moodTrend.length).toFixed(1)
-    : "0.0";
+  const pieTotals = stressFoodCorrelation.reduce(
+    (acc, row) => {
+      acc.Healthy += row.Healthy;
+      acc.Neutral += row.Neutral;
+      acc.Sugary += row.Sugary;
+      acc.Junk += row.Junk;
+      acc.Skipped += row.Skipped;
+      return acc;
+    },
+    { Healthy: 0, Neutral: 0, Sugary: 0, Junk: 0, Skipped: 0 },
+  );
+
+  const pieData = [
+    { name: "Healthy", value: pieTotals.Healthy, color: "#d8d8d8" },
+    { name: "Neutral", value: pieTotals.Neutral, color: "#a8a8a8" },
+    { name: "Sugary", value: pieTotals.Sugary, color: "#111111" },
+    { name: "Junk", value: pieTotals.Junk, color: "#6f6f6f" },
+    { name: "Skipped", value: pieTotals.Skipped, color: "#8f8f8f" },
+  ].filter((item) => item.value > 0);
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 rounded-2xl border bg-muted/30 p-4 md:flex-row md:items-center md:justify-between md:p-5">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Analytics Overview</p>
-          <h1 className="font-heading text-2xl">Health Behaviour Dashboard</h1>
+          <h1 className="font-heading text-4xl">Overview</h1>
+          <p className="text-muted-foreground">Analyzing patterns from the last 30 days</p>
         </div>
-        <Tabs value={range} onValueChange={(v) => setRange(v as DashboardRange)}>
-          <TabsList>
-            <TabsTrigger value="7d">7 Days</TabsTrigger>
-            <TabsTrigger value="30d">30 Days</TabsTrigger>
-            <TabsTrigger value="all">All Time</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-2">
+          <LinkButton href="/mood/new" variant="outline" className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            Log Mood
+          </LinkButton>
+          <LinkButton href="/eating/new" className="gap-1.5 bg-foreground text-background hover:bg-foreground/85">
+            <X className="h-4 w-4" />
+            Log Meal
+          </LinkButton>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Mood Logs"
-          value={summary.totalMoodLogs}
-          hint="Entries captured"
-          icon={Brain}
-        />
-        <StatCard
-          label="Meal Logs"
-          value={summary.totalEatingLogs}
-          hint="Nutrition entries"
-          icon={Utensils}
-        />
-        <StatCard
-          label="Days Tracked"
-          value={summary.daysTracked}
-          hint="Active tracking days"
-          icon={CalendarDays}
-        />
-        <StatCard
-          label="Average Mood"
-          value={averageMood}
-          hint={`Top label: ${summary.topMoodLabel ?? "N/A"}`}
-          icon={TrendingUp}
-        />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Total Logs" value={summary.totalMoodLogs + summary.totalEatingLogs} />
+        <StatCard label="Days Tracked" value={summary.daysTracked} />
+        <StatCard label="Top Mood" value={summary.topMoodLabel ?? "N/A"} />
+        <StatCard label="Top Category" value={summary.topFoodCategory ?? "N/A"} />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base">Mood vs Stress Trend</CardTitle>
+            <CardTitle className="text-2xl">Mood Score Trend</CardTitle>
           </CardHeader>
           <CardContent>
             {moodChartData.length === 0 ? (
@@ -194,7 +163,7 @@ export default function DashboardPage() {
                 No data for this period
               </p>
             ) : (
-              <ResponsiveContainer width="100%" height={290}>
+              <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={moodChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} />
@@ -205,17 +174,17 @@ export default function DashboardPage() {
                     type="monotone"
                     dataKey="avgMoodScore"
                     name="Mood"
-                    stroke="hsl(var(--primary))"
-                    dot={false}
-                    strokeWidth={2}
+                    stroke="#111111"
+                    dot
+                    strokeWidth={2.5}
                   />
                   <Line
                     type="monotone"
                     dataKey="avgStressLevel"
                     name="Stress"
-                    stroke="hsl(var(--destructive))"
+                    stroke="#8f8f8f"
                     dot={false}
-                    strokeWidth={2}
+                    strokeWidth={2.2}
                     strokeDasharray="4 2"
                   />
                 </LineChart>
@@ -226,31 +195,28 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Nutrition Mix</CardTitle>
+            <CardTitle className="text-2xl">Key Insights</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {eatingFrequency.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No data for this period
-              </p>
-            ) : (
-              <>
-                <ResponsiveContainer width="100%" height={210}>
-                  <BarChart data={eatingFrequency} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" tick={{ fontSize: 12 }} />
-                    <YAxis dataKey="foodCategory" type="category" tick={{ fontSize: 12 }} width={70} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="rounded-xl border bg-muted/35 p-3">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Top category</p>
-                  <p className="mt-1 font-semibold">{summary.topFoodCategory ?? "N/A"}</p>
-                  <p className="text-xs text-muted-foreground">{totalFoodLogs} meals in selected range</p>
+            {topInsights.length > 0 ? (
+              topInsights.slice(0, 2).map((insight) => (
+                <div key={insight.correlationId} className="rounded-xl border bg-card p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold">{insight.headline}</p>
+                    <Badge variant="secondary">{Math.round(insight.strengthScore * 100)}%</Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">{insight.supportingStat}</p>
+                  <p className="mt-4 border-t pt-3 text-sm">{insight.suggestion}</p>
                 </div>
-              </>
+              ))
+            ) : (
+              <div className="rounded-xl border p-6 text-sm text-muted-foreground">
+                Insights will appear after sufficient logs are available.
+              </div>
             )}
+            <div className="text-right">
+              <LinkButton href="/insights" variant="ghost" size="sm">View All</LinkButton>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -258,26 +224,21 @@ export default function DashboardPage() {
       <div className="grid gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base">Stress vs Food Category</CardTitle>
+            <CardTitle className="text-2xl">Eating Frequency</CardTitle>
           </CardHeader>
           <CardContent>
-            {stressFoodCorrelation.length === 0 ? (
+            {eatingFrequency.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 No data for this period
               </p>
             ) : (
-              <ResponsiveContainer width="100%" height={270}>
-                <BarChart data={stressFoodCorrelation}>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={eatingFrequency}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="stressLevel" tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="foodCategory" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Legend />
-                  <Bar dataKey="Healthy" stackId="a" fill="#22c55e" />
-                  <Bar dataKey="Neutral" stackId="a" fill="#94a3b8" />
-                  <Bar dataKey="Sugary" stackId="a" fill="#f59e0b" />
-                  <Bar dataKey="Junk" stackId="a" fill="#ef4444" />
-                  <Bar dataKey="Skipped" stackId="a" fill="#6b7280" />
+                  <Bar dataKey="count" fill="#101010" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -286,79 +247,44 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Action Rail</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <LinkButton href="/mood/new" className="w-full justify-between">
-              Log Mood
-              <ArrowUpRight className="h-4 w-4" />
-            </LinkButton>
-            <LinkButton href="/eating/new" className="w-full justify-between" variant="outline">
-              Log Meal
-              <ArrowUpRight className="h-4 w-4" />
-            </LinkButton>
-            <LinkButton href="/insights" className="w-full justify-between" variant="secondary">
-              Deep Insights
-              <ArrowUpRight className="h-4 w-4" />
-            </LinkButton>
-            <div className="rounded-xl border bg-muted/35 p-3">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Tracking cadence</p>
-              <p className="mt-1 text-sm">
-                {summary.daysTracked > 0
-                  ? `${summary.daysTracked} active days recorded.`
-                  : "No active days yet."}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {topInsights.length > 0 ? (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Pattern Feed</CardTitle>
-            <LinkButton href="/insights" variant="ghost" size="sm">View All</LinkButton>
+            <CardTitle className="text-base">Stress vs Food Category</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {topInsights.slice(0, 3).map((i) => (
-                <InsightCard key={i.correlationId} insight={i} />
-              ))}
-            </div>
+            {pieData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-10">No data for this period</p>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={210}>
+                  <PieChart>
+                    <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={45} outerRadius={82}>
+                      {pieData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                  {pieData.map((item) => (
+                    <div key={item.name} className="flex items-center gap-2 text-muted-foreground">
+                      <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                      {item.name}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
-      ) : (
-        <Card>
-          <CardContent className="flex items-center gap-3 p-5 text-sm text-muted-foreground">
-            <Lightbulb className="h-4 w-4" />
-            Insights will appear after sufficient data is logged.
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="flex flex-wrap gap-2">
-        <LinkButton href="/mood/new" size="sm">
-          <PlusCircle className="mr-1 h-4 w-4" />
-          Quick Mood Log
-        </LinkButton>
-        <LinkButton href="/eating/new" variant="outline" size="sm">
-          <PlusCircle className="mr-1 h-4 w-4" />
-          Quick Meal Log
-        </LinkButton>
       </div>
 
-      {topInsights.length > 0 && (
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-semibold">High Confidence Signals</h2>
-            <Badge variant="secondary">{topInsights.length}</Badge>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {topInsights.slice(0, 6).map((i) => (
-              <InsightCard key={i.correlationId} insight={i} />
-            ))}
-          </div>
-        </div>
+      {topInsights.length === 0 && (
+        <Card>
+          <CardContent className="flex items-center gap-2 p-5 text-sm text-muted-foreground">
+            <Lightbulb className="h-4 w-4" />
+            Keep logging daily to unlock statistically stronger insights.
+          </CardContent>
+        </Card>
       )}
     </div>
   );
