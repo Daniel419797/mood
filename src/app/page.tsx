@@ -237,7 +237,84 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        <section className="mx-auto w-full max-w-6xl px-4 pb-14 md:px-6">
+          <div className="rounded-3xl border bg-foreground px-6 py-10 text-background md:px-10">
+            <p className="text-xs uppercase tracking-[0.18em] text-background/70">Ready to start</p>
+            <div className="mt-3 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="font-heading text-3xl leading-tight md:text-4xl">See your patterns clearly in 7 days.</h2>
+                <p className="mt-2 max-w-2xl text-sm text-background/75 md:text-base">
+                  Start logging mood and meals today to generate your first statistically grounded insight this week.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Link
+                  href="/register"
+                  className="inline-flex h-11 items-center rounded-lg bg-background px-5 text-sm font-semibold text-foreground transition hover:opacity-90"
+                >
+                  Start Tracking
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex h-11 items-center rounded-lg border border-background/30 px-5 text-sm font-semibold text-background transition hover:bg-background/10"
+                >
+                  Sign In
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
+
+      <footer className="border-t bg-muted/35">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 md:flex-row md:items-start md:justify-between md:px-6">
+          <div>
+            <div className="flex items-center gap-2 font-semibold">
+              <span className="rounded-md bg-foreground p-1.5 text-background">
+                <Brain className="h-4 w-4" />
+              </span>
+              MindfulMorsel
+            </div>
+            <p className="mt-3 max-w-md text-sm text-muted-foreground">
+              Behavioural mood and eating pattern tracking designed for practical self-awareness.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8 text-sm md:grid-cols-3">
+            <div>
+              <p className="mb-2 font-semibold">Product</p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li><a href="#methodology" className="hover:text-foreground">Methodology</a></li>
+                <li><a href="#science" className="hover:text-foreground">Science</a></li>
+                <li><a href="#pricing" className="hover:text-foreground">Capabilities</a></li>
+              </ul>
+            </div>
+            <div>
+              <p className="mb-2 font-semibold">Account</p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li><Link href="/login" className="hover:text-foreground">Sign In</Link></li>
+                <li><Link href="/register" className="hover:text-foreground">Create Account</Link></li>
+                <li><Link href="/dashboard" className="hover:text-foreground">Dashboard</Link></li>
+              </ul>
+            </div>
+            <div>
+              <p className="mb-2 font-semibold">Legal</p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li><span>Privacy Policy</span></li>
+                <li><span>Terms of Service</span></li>
+                <li><span>Data Deletion</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div className="border-t">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 text-xs text-muted-foreground md:px-6">
+            <span>© 2026 MindfulMorsel Project</span>
+            <span>Built for behavioural insight, not calorie counting.</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
