@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format, isToday, parseISO } from "date-fns";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/link-button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,24 +22,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { eatingApi } from "@/services/eating";
 import type { EatingLog } from "@/types";
-import { Utensils, Pencil, Trash2, PlusCircle } from "lucide-react";
-import Link from "next/link";
+import { Pencil, Plus, Trash2, Utensils } from "lucide-react";
 
-const categoryColour: Record<string, string> = {
-  Healthy: "bg-green-100 text-green-800",
-  Neutral: "bg-gray-100 text-gray-700",
-  Sugary: "bg-yellow-100 text-yellow-800",
-  Junk: "bg-red-100 text-red-800",
-  Skipped: "bg-slate-100 text-slate-600",
+const categoryColor: Record<string, string> = {
+  Healthy: "bg-blue-100 text-blue-700",
+  Neutral: "bg-slate-100 text-slate-700",
+  Sugary: "bg-indigo-100 text-indigo-700",
+  Junk: "bg-red-100 text-red-700",
+  Skipped: "bg-amber-100 text-amber-700",
 };
 
-function EatingCard({
-  entry,
-  onDeleted,
-}: {
-  entry: EatingLog;
-  onDeleted: (id: string) => void;
-}) {
+function EatingRow({ entry, onDeleted }: { entry: EatingLog; onDeleted: (id: string) => void }) {
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -58,23 +51,33 @@ function EatingCard({
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              <Badge>{entry.mealType}</Badge>
-              <Badge className={categoryColour[entry.foodCategory] ?? ""}>{entry.foodCategory}</Badge>
-              <Badge variant="outline">{entry.portionRating}</Badge>
-              <Badge variant="outline">Hunger {entry.hungerBefore}/5</Badge>
-              <Badge variant="outline">{entry.timeOfDay}</Badge>
-            </div>
-            {entry.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2">{entry.description}</p>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              {format(parseISO(entry.loggedAt), "PPpp")}
-            </p>
+        <div className="grid grid-cols-1 items-center gap-3 md:grid-cols-[130px_1fr_90px_80px_90px_56px]">
+          <div>
+            <p className="text-[11px] text-muted-foreground">{isToday(new Date(entry.loggedAt)) ? "Today" : "Earlier"}</p>
+            <p className="font-semibold">{format(parseISO(entry.loggedAt), "p")}</p>
           </div>
-          <div className="flex gap-1 shrink-0">
+
+          <div className="min-w-0">
+            <p className="text-[11px] text-muted-foreground">{entry.mealType}</p>
+            <p className="truncate font-medium">{entry.description || "No description"}</p>
+          </div>
+
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Category</p>
+            <Badge className={categoryColor[entry.foodCategory] ?? ""}>{entry.foodCategory}</Badge>
+          </div>
+
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Portion</p>
+            <p className="font-medium">{entry.portionRating}</p>
+          </div>
+
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Hunger</p>
+            <p className="font-medium">{entry.hungerBefore}/5</p>
+          </div>
+
+          <div className="flex justify-end gap-1">
             <LinkButton href={`/eating/${entry.id}/edit`} variant="ghost" size="icon">
               <Pencil className="h-4 w-4" />
             </LinkButton>
@@ -85,14 +88,12 @@ function EatingCard({
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete eating entry?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone.
-                  </AlertDialogDescription>
+                  <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDelete} disabled={deleting}>
-                    {deleting ? "Deleting…" : "Delete"}
+                    {deleting ? "Deleting..." : "Delete"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -125,16 +126,29 @@ export default function EatingHistoryPage() {
   useEffect(() => {
     let result = [...entries];
     if (from) result = result.filter((e) => e.loggedAt >= from);
-    if (to) result = result.filter((e) => e.loggedAt <= to + "T23:59:59Z");
+    if (to) result = result.filter((e) => e.loggedAt <= `${to}T23:59:59Z`);
     setFiltered(result);
   }, [from, to, entries]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, EatingLog[]>();
+    for (const entry of filtered) {
+      const key = format(parseISO(entry.loggedAt), "yyyy-MM-dd");
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(entry);
+    }
+    return Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  }, [filtered]);
 
   const handleDeleted = (id: string) => {
     setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
-  const noLogsToday =
-    entries.length > 0 && entries.every((e) => !isToday(new Date(e.loggedAt)));
+  const loggedToday = entries.filter((e) => isToday(new Date(e.loggedAt))).length;
+  const skippedThisWeek = entries.filter((e) => e.foodCategory === "Skipped").length;
+  const avgHunger = entries.length
+    ? (entries.reduce((acc, e) => acc + e.hungerBefore, 0) / entries.length).toFixed(1)
+    : "0.0";
 
   if (isLoading) {
     return (
@@ -147,65 +161,70 @@ export default function EatingHistoryPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Utensils className="h-6 w-6" /> Eating History
-        </h1>
-        <LinkButton href="/eating/new" size="sm">
-          <PlusCircle className="h-4 w-4 mr-1" /> Log Meal
-        </LinkButton>
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="font-heading text-4xl">Eating History</h1>
+          <p className="text-muted-foreground">Review and manage your logged meals and snacks</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Input type="date" className="h-9 w-40" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <Input type="date" className="h-9 w-40" value={to} onChange={(e) => setTo(e.target.value)} />
+          <LinkButton href="/eating/new" className="gap-1.5 bg-foreground text-background hover:bg-foreground/85">
+            <Plus className="h-4 w-4" /> Log Meal
+          </LinkButton>
+        </div>
       </div>
 
-      {noLogsToday && (
-        <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
-          You haven&apos;t logged any meals today yet.{" "}
-          <Link href="/eating/new" className="underline font-medium">
-            Log now
-          </Link>
+      <div className="grid gap-3 md:grid-cols-3">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Logged Today</p>
+            <p className="font-semibold">{loggedToday} Meals</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Skipped Meals</p>
+            <p className="font-semibold">{skippedThisWeek} this week</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Avg. Hunger</p>
+            <p className="font-semibold">{avgHunger} / 5</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {grouped.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
+            <Utensils className="h-10 w-10 text-muted-foreground" />
+            <p className="text-muted-foreground">No eating entries yet. Start logging today.</p>
+            <LinkButton href="/eating/new">Log First Meal</LinkButton>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-5">
+          {grouped.map(([dateKey, items]) => (
+            <div key={dateKey} className="space-y-3">
+              <p className="font-semibold">{format(parseISO(`${dateKey}T00:00:00Z`), "EEEE, MMM d")}</p>
+              <div className="space-y-3">
+                {items.map((entry) => (
+                  <EatingRow key={entry.id} entry={entry} onDeleted={handleDeleted} />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          <label className="text-sm font-medium">From</label>
-          <Input
-            type="date"
-            className="w-36 h-8"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-1.5">
-          <label className="text-sm font-medium">To</label>
-          <Input
-            type="date"
-            className="w-36 h-8"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-          />
-        </div>
-        {(from || to) && (
-          <Button variant="ghost" size="sm" onClick={() => { setFrom(""); setTo(""); }}>
-            Clear
+      {(from || to) && (
+        <div className="text-center">
+          <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); }}>
+            Clear Filter
           </Button>
-        )}
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center py-16 gap-3 text-center">
-          <Utensils className="h-10 w-10 text-muted-foreground" />
-          <p className="text-muted-foreground">No eating entries yet. Start logging today!</p>
-          <LinkButton href="/eating/new">
-            Log First Meal
-          </LinkButton>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((entry) => (
-            <EatingCard key={entry.id} entry={entry} onDeleted={handleDeleted} />
-          ))}
         </div>
       )}
     </div>

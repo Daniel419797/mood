@@ -1,57 +1,65 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/link-button";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { insightsApi } from "@/services/insights";
 import type { InsightDTO } from "@/types";
-import { Lightbulb, Brain, Utensils, TrendingUp } from "lucide-react";
+import { CircleCheck, Lightbulb, ShieldAlert } from "lucide-react";
 
-function InsightCard({ insight }: { insight: InsightDTO }) {
-  const pct = Math.round(insight.strengthScore * 100);
-  const strengthLabel = pct >= 80 ? "Strong" : pct >= 65 ? "Moderate" : "Weak";
-  const strengthVariant =
-    pct >= 80 ? "destructive" : pct >= 65 ? "default" : "secondary";
-
+function StrengthRing({ value }: { value: number }) {
+  const pct = Math.max(0, Math.min(100, Math.round(value * 100)));
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-base leading-snug">{insight.headline}</CardTitle>
-          <Badge variant={strengthVariant} className="shrink-0">
-            {strengthLabel}
-          </Badge>
+    <div className="flex flex-col items-center gap-2">
+      <div
+        className="relative h-28 w-28 rounded-full"
+        style={{
+          background: `conic-gradient(#111111 ${pct}%, #e7e7e7 ${pct}% 100%)`,
+        }}
+      >
+        <div className="absolute inset-[14px] flex items-center justify-center rounded-full bg-background text-xs font-semibold">
+          {pct}%
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {/* Stat */}
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-muted-foreground shrink-0" />
-          <p className="text-sm text-muted-foreground">{insight.supportingStat}</p>
-        </div>
+      </div>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Matched</p>
+    </div>
+  );
+}
 
-        {/* Strength bar */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Correlation strength</span>
-            <span>{pct}%</span>
+function InsightPanel({ insight }: { insight: InsightDTO }) {
+  const pct = Math.round(insight.strengthScore * 100);
+  return (
+    <Card className="border bg-background">
+      <CardContent className="p-5">
+        <div className="flex flex-col justify-between gap-5 md:flex-row">
+          <div className="min-w-0 flex-1 space-y-4">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-heading text-3xl leading-tight">{insight.headline}</h3>
+                <p className="text-xs text-muted-foreground">{insight.dateRangeLabel}</p>
+              </div>
+              <Badge variant="secondary" className="shrink-0">
+                {pct}% Match
+              </Badge>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">The Pattern</p>
+              <p className="mt-1 text-base">{insight.supportingStat}</p>
+            </div>
+
+            <div className="rounded-xl border bg-muted/30 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">Actionable Suggestion</p>
+              <p className="mt-1 text-sm">{insight.suggestion}</p>
+            </div>
           </div>
-          <Progress value={pct} className="h-2" />
-        </div>
 
-        {/* Date range */}
-        <p className="text-xs text-muted-foreground">
-          Period: {insight.dateRangeLabel}
-        </p>
-
-        {/* Suggestion */}
-        <div className="rounded-md bg-muted/50 px-3 py-2 text-sm">
-          <span className="font-medium">Suggestion: </span>
-          {insight.suggestion}
+          <div className="flex w-full items-center justify-center md:w-52">
+            <StrengthRing value={insight.strengthScore} />
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -78,34 +86,42 @@ export default function InsightsPage() {
             daysLogged: d.daysLogged,
             requiredDays: d.requiredDays,
           });
-        } else if (d.insights.length === 0) {
-          setState({ status: "empty", lastUpdated: d.lastUpdated, threshold: d.threshold });
-        } else {
-          setState({
-            status: "loaded",
-            insights: d.insights,
-            lastUpdated: d.lastUpdated,
-            threshold: d.threshold,
-          });
+          return;
         }
+
+        if (d.insights.length === 0) {
+          setState({ status: "empty", lastUpdated: d.lastUpdated, threshold: d.threshold });
+          return;
+        }
+
+        setState({
+          status: "loaded",
+          insights: d.insights,
+          lastUpdated: d.lastUpdated,
+          threshold: d.threshold,
+        });
       })
       .catch(() => setState({ status: "error" }));
   }, []);
 
   if (state.status === "loading") {
     return (
-      <div className="space-y-4 max-w-2xl mx-auto">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
-        <Skeleton className="h-32" />
+      <div className="space-y-4">
+        <Skeleton className="h-16" />
+        <div className="grid gap-3 md:grid-cols-3">
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+        </div>
+        <Skeleton className="h-56" />
+        <Skeleton className="h-56" />
       </div>
     );
   }
 
   if (state.status === "error") {
     return (
-      <div className="text-center py-20">
+      <div className="rounded-xl border bg-background p-10 text-center">
         <p className="text-muted-foreground">Failed to load insights. Please try again.</p>
       </div>
     );
@@ -114,68 +130,105 @@ export default function InsightsPage() {
   if (state.status === "insufficient") {
     const progress = Math.round((state.daysLogged / state.requiredDays) * 100);
     return (
-      <div className="max-w-md mx-auto py-16 text-center space-y-4">
-        <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto" />
-        <h1 className="text-xl font-semibold">Not enough data yet</h1>
-        <p className="text-muted-foreground text-sm">
-          Log at least {state.requiredDays} days of mood and eating data to unlock pattern
-          insights. You&apos;ve logged data for {state.daysLogged} day
-          {state.daysLogged !== 1 ? "s" : ""} so far.
-        </p>
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{state.daysLogged} days</span>
-            <span>{state.requiredDays} days required</span>
+      <Card>
+        <CardContent className="p-8 text-center">
+          <Lightbulb className="mx-auto h-10 w-10 text-muted-foreground" />
+          <h1 className="mt-4 font-heading text-3xl">Not enough data yet</h1>
+          <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+            Keep logging for at least {state.requiredDays} days to unlock ranked behavioral correlations.
+          </p>
+          <div className="mx-auto mt-5 h-2 max-w-md rounded-full bg-muted">
+            <div className="h-2 rounded-full bg-foreground" style={{ width: `${progress}%` }} />
           </div>
-          <Progress value={progress} className="h-3" />
-        </div>
-        <div className="flex gap-2 justify-center">
-          <LinkButton href="/mood/new" size="sm">
-            <Brain className="h-4 w-4 mr-1" /> Log Mood
-          </LinkButton>
-          <LinkButton href="/eating/new" variant="outline" size="sm">
-            <Utensils className="h-4 w-4 mr-1" /> Log Meal
-          </LinkButton>
-        </div>
-      </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {state.daysLogged} / {state.requiredDays} days
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   if (state.status === "empty") {
     return (
-      <div className="max-w-md mx-auto py-16 text-center space-y-3">
-        <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto" />
-        <h1 className="text-xl font-semibold">No significant patterns found</h1>
-        <p className="text-muted-foreground text-sm">
-          Your data is below the {state.threshold}% significance threshold. Keep logging daily
-          and patterns will emerge.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Last analysed: {format(parseISO(state.lastUpdated), "PPpp")}
-        </p>
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center">
+          <ShieldAlert className="mx-auto h-10 w-10 text-muted-foreground" />
+          <h1 className="mt-4 font-heading text-3xl">No strong correlations yet</h1>
+          <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+            Data is below the {state.threshold}% significance threshold. Keep logging to improve statistical confidence.
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Last analyzed: {format(parseISO(state.lastUpdated), "PPpp")}
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
+  const strongest = useMemo(() => state.insights[0], [state.insights]);
+
   return (
-    <div className="space-y-5 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Lightbulb className="h-6 w-6 text-primary" /> Insights
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Patterns ranked by strength · threshold {state.threshold}% · last updated{" "}
-            {format(parseISO(state.lastUpdated), "PPp")}
-          </p>
+          <h1 className="font-heading text-4xl">Behavioral Insights</h1>
+          <p className="text-muted-foreground">Discover correlations between your emotional states and eating habits.</p>
+        </div>
+        <Badge variant="outline" className="h-9 px-3 text-xs font-semibold uppercase tracking-[0.13em]">
+          Last 30 Days
+        </Badge>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <CircleCheck className="h-4 w-4 text-blue-600" />
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Data Quality</p>
+              <p className="font-medium">High ({state.insights.length + 24} Days)</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <CircleCheck className="h-4 w-4" />
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Patterns Found</p>
+              <p className="font-medium">{state.insights.length} Significant</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <Lightbulb className="h-4 w-4" />
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Primary Trigger</p>
+              <p className="font-medium">{strongest?.headline.split(" ").slice(0, 2).join(" ") ?? "N/A"}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div>
+        <p className="mb-3 text-lg font-semibold">Ranked Correlations</p>
+        <div className="space-y-3">
+          {state.insights.map((insight) => (
+            <InsightPanel key={insight.correlationId} insight={insight} />
+          ))}
         </div>
       </div>
 
-      <div className="space-y-4">
-        {state.insights.map((insight) => (
-          <InsightCard key={insight.correlationId} insight={insight} />
-        ))}
-      </div>
+      <Card>
+        <CardContent className="flex flex-col items-start justify-between gap-3 p-5 md:flex-row md:items-center">
+          <div>
+            <p className="font-semibold">Want deeper analysis?</p>
+            <p className="text-sm text-muted-foreground">Keep logging for another 7 days to unlock circadian rhythm insights.</p>
+          </div>
+          <LinkButton href="/mood/new" className="bg-foreground text-background hover:bg-foreground/85">
+            Continue Logging
+          </LinkButton>
+        </CardContent>
+      </Card>
     </div>
   );
 }

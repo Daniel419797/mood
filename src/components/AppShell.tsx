@@ -24,9 +24,9 @@ import { cn } from "@/lib/utils";
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/mood/history", label: "Mood", icon: Brain },
-  { href: "/eating/history", label: "Eating", icon: Utensils },
-  { href: "/insights", label: "Insights", icon: Lightbulb },
+  { href: "/mood/history", label: "Mood History", icon: Brain },
+  { href: "/eating/history", label: "Eating Log", icon: Utensils },
+  { href: "/insights", label: "Behavioral Insights", icon: Lightbulb },
   { href: "/profile", label: "Profile", icon: Settings },
 ];
 
