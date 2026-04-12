@@ -113,7 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (isFocusedComposer) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="border-b bg-background">
+        <header className="sticky top-0 z-40 border-b bg-background">
           <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 md:px-6">
             <div className="flex items-center gap-3">
               <button
@@ -236,7 +236,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         <div className="min-w-0">
-          <header className="border-b bg-background">
+          <header className="sticky top-0 z-40 border-b bg-background">
             <div className="flex h-16 items-center justify-between px-4">
               <div className="flex items-center gap-3">
                 <button
