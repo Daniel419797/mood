@@ -85,8 +85,23 @@ api.interceptors.response.use(
     }
 
     if (typeof window !== "undefined" && error.response?.status === 401) {
-      localStorage.removeItem("token");
-      window.location.href = "/login";
+      const rawUrl = String(config?.url ?? "");
+      let pathname = rawUrl;
+      if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+        try {
+          pathname = new URL(rawUrl).pathname;
+        } catch {
+          pathname = rawUrl;
+        }
+      }
+
+      // Only force logout when identity verification fails.
+      // Other 401s (e.g., project API-key / gateway auth) should not wipe the session.
+      const isAuthMeEndpoint = /\/auth\/me(?:$|\?)/.test(pathname);
+      if (isAuthMeEndpoint) {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }
