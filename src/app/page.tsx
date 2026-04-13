@@ -223,7 +223,7 @@ export default function Home() {
           <h2 className="text-center font-heading text-4xl">Built for self-awareness</h2>
           <div className="mt-10 grid gap-5 sm:grid-cols-2">
             {capabilityBlocks.map(({ icon: Icon, title, description }) => (
-              <article key={title} className="rounded-2xl border p-5">
+              <article key={title} className="p-5">
                 <div className="flex items-start gap-3">
                   <span className="inline-flex rounded-lg border bg-muted p-2">
                     <Icon className="h-4 w-4" />
