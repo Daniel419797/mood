@@ -39,19 +39,20 @@ function oauthStartUrl(provider: "google" | "github"): string {
   if (redirect) q.set("redirect", redirect);
   if (projectId) q.set("projectId", projectId);
 
-  if (projectId) {
-    return `${base}/auth/oauth/${provider}?${q.toString()}`;
+  // Strip /p/{projectId} suffix so auth routes resolve correctly
+  // e.g. /api/v1/p/{id} → /api/v1
+  const authBase = projectId ? base.replace(/\/p\/[0-9a-fA-F-]+$/, "") : base;
+  const qs = q.toString() ? `?${q.toString()}` : "";
+
+  if (authBase.endsWith("/api/v1")) {
+    return `${authBase}/auth/oauth/${provider}${qs}`;
   }
 
-  if (base.endsWith("/api/v1")) {
-    return `${base}/auth/oauth/${provider}${q.toString() ? `?${q.toString()}` : ""}`;
+  if (authBase) {
+    return `${authBase}/api/v1/auth/oauth/${provider}${qs}`;
   }
 
-  if (base) {
-    return `${base}/api/v1/auth/oauth/${provider}${q.toString() ? `?${q.toString()}` : ""}`;
-  }
-
-  return `/api/v1/auth/oauth/${provider}${q.toString() ? `?${q.toString()}` : ""}`;
+  return `/api/v1/auth/oauth/${provider}${qs}`;
 }
 
 function toUser(u: ApiUser): User {
