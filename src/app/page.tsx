@@ -176,7 +176,7 @@ export default function Home() {
 
           <div className="mt-10 grid gap-5 md:grid-cols-3">
             {valueProps.map(({ icon: Icon, title, description }) => (
-              <article key={title} className="rounded-2xl border p-5">
+              <article key={title} className="p-5">
                 <span className="inline-flex rounded-lg border bg-muted p-2">
                   <Icon className="h-4 w-4" />
                 </span>
