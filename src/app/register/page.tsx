@@ -68,6 +68,11 @@ export default function RegisterPage() {
     }
   };
 
+  const startOAuth = (provider: "google" | "github") => {
+    const url = authApi.getOAuthStartUrl(provider);
+    window.location.href = url;
+  };
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_hsl(var(--primary)/0.08),_transparent_35%),hsl(var(--background))] px-4 py-8 md:px-6">
       <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-3xl border bg-background/90 shadow-xl backdrop-blur md:grid-cols-[1.08fr_0.92fr]">
@@ -128,6 +133,19 @@ export default function RegisterPage() {
               <CardDescription>Join users tracking their behaviors.</CardDescription>
             </CardHeader>
             <CardContent>
+          <div className="space-y-2">
+            <Button type="button" variant="outline" className="w-full" onClick={() => startOAuth("google")}>Continue with Google</Button>
+            <Button type="button" variant="outline" className="w-full" onClick={() => startOAuth("github")}>
+              Continue with GitHub
+            </Button>
+          </div>
+
+          <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField

@@ -16,6 +16,44 @@ type ApiUser = {
   createdAt?: string;
 };
 
+type OAuthExchangePayload = {
+  accessToken?: string;
+  token?: string;
+  user: ApiUser;
+};
+
+function getApiBase(): string {
+  return (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+}
+
+function extractProjectIdFromApiBase(base: string): string | null {
+  const m = base.match(/\/api\/v1\/p\/([0-9a-fA-F-]+)$/);
+  return m?.[1] ?? null;
+}
+
+function oauthStartUrl(provider: "google" | "github"): string {
+  const base = getApiBase();
+  const redirect = typeof window !== "undefined" ? window.location.origin : "";
+  const projectId = extractProjectIdFromApiBase(base);
+  const q = new URLSearchParams();
+  if (redirect) q.set("redirect", redirect);
+  if (projectId) q.set("projectId", projectId);
+
+  if (projectId) {
+    return `${base}/auth/oauth/${provider}?${q.toString()}`;
+  }
+
+  if (base.endsWith("/api/v1")) {
+    return `${base}/auth/oauth/${provider}${q.toString() ? `?${q.toString()}` : ""}`;
+  }
+
+  if (base) {
+    return `${base}/api/v1/auth/oauth/${provider}${q.toString() ? `?${q.toString()}` : ""}`;
+  }
+
+  return `/api/v1/auth/oauth/${provider}${q.toString() ? `?${q.toString()}` : ""}`;
+}
+
 function toUser(u: ApiUser): User {
   return {
     id: u.id,
@@ -42,6 +80,20 @@ export const authApi = {
 
   login: (data: LoginRequestDTO) =>
     api.post<{ data: { token?: string; accessToken?: string; user: ApiUser } }>("/auth/login", data).then((res) => ({
+      ...res,
+      data: {
+        ...res.data,
+        data: {
+          token: res.data.data.token ?? res.data.data.accessToken ?? "",
+          user: toUser(res.data.data.user),
+        },
+      },
+    })) as unknown as Promise<{ data: LoginResponseDTO }>,
+
+  getOAuthStartUrl: (provider: "google" | "github") => oauthStartUrl(provider),
+
+  exchangeOAuthCode: (code: string) =>
+    api.post<{ data: OAuthExchangePayload }>("/auth/oauth/exchange", { code }).then((res) => ({
       ...res,
       data: {
         ...res.data,
