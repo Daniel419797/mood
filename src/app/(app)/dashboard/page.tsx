@@ -22,7 +22,7 @@ import { LinkButton } from "@/components/ui/link-button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { insightsApi } from "@/services/insights";
-import type { DashboardResponseDTO } from "@/types";
+import type { DashboardRange, DashboardResponseDTO } from "@/types";
 import {
   Brain,
   Lightbulb,
@@ -52,15 +52,18 @@ function StatCard({
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardResponseDTO["data"] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [range, setRange] = useState<DashboardRange>("30d");
 
   useEffect(() => {
     setIsLoading(true);
     insightsApi
-      .getDashboard("30d")
+      .getDashboard(range)
       .then((res) => setData(res.data.data))
       .catch(() => setData(null))
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [range]);
+
+  const rangeLabel = range === "7d" ? "last 7 days" : range === "30d" ? "last 30 days" : "all time";
 
   if (isLoading) {
     return (
@@ -131,9 +134,28 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="font-heading text-4xl">Overview</h1>
-          <p className="text-muted-foreground">Analyzing patterns from the last 30 days</p>
+          <p className="text-muted-foreground">Analyzing patterns from {rangeLabel}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg border bg-background p-1">
+            {([
+              { key: "7d", label: "7 Days" },
+              { key: "30d", label: "30 Days" },
+              { key: "all", label: "All Time" },
+            ] as const).map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setRange(opt.key)}
+                className={
+                  "h-7 rounded-md px-2.5 text-xs font-medium transition-colors " +
+                  (range === opt.key ? "bg-foreground text-background" : "text-foreground hover:bg-muted")
+                }
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <LinkButton href="/mood/new" variant="outline" className="gap-1.5">
             <Plus className="h-4 w-4" />
             Log Mood

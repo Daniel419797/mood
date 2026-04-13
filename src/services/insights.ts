@@ -10,6 +10,18 @@ import type {
 import { moodApi } from "@/services/mood";
 import { eatingApi } from "@/services/eating";
 
+const INSIGHT_THRESHOLD_KEY = "insight_threshold";
+const DEFAULT_INSIGHT_THRESHOLD = 60;
+
+function getInsightThreshold(): number {
+  if (typeof window === "undefined") return DEFAULT_INSIGHT_THRESHOLD;
+  const raw = window.localStorage.getItem(INSIGHT_THRESHOLD_KEY);
+  if (!raw) return DEFAULT_INSIGHT_THRESHOLD;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return DEFAULT_INSIGHT_THRESHOLD;
+  return Math.min(95, Math.max(40, Math.round(parsed)));
+}
+
 function rangeStart(range: DashboardRange): Date | null {
   if (range === "all") return null;
   const d = new Date();
@@ -88,9 +100,10 @@ function buildStressFoodCorrelation(moods: MoodLog[], eating: EatingLog[]) {
     .map(([stressLevel, v]) => ({ stressLevel, ...v }));
 }
 
-function buildInsights(moods: MoodLog[], eating: EatingLog[]): InsightDTO[] {
+function buildInsights(moods: MoodLog[], eating: EatingLog[], thresholdPct: number): InsightDTO[] {
   const insights: InsightDTO[] = [];
   const totalDays = new Set([...moods, ...eating].map((x) => x.loggedAt.slice(0, 10))).size;
+  const threshold = thresholdPct / 100;
 
   const stressed = moods.filter((m) => m.stressLevel >= 4).map((m) => m.loggedAt.slice(0, 10));
   const stressedDays = new Set(stressed);
@@ -100,7 +113,7 @@ function buildInsights(moods: MoodLog[], eating: EatingLog[]): InsightDTO[] {
   const overlap1 = Array.from(stressedDays).filter((d) => sugaryDays.has(d)).length;
   if (stressedDays.size > 0) {
     const score = overlap1 / stressedDays.size;
-    if (score >= 0.5) {
+    if (score >= threshold) {
       insights.push({
         correlationId: "stress-sugary",
         headline: "Higher stress days align with sugary/junk choices",
@@ -119,7 +132,7 @@ function buildInsights(moods: MoodLog[], eating: EatingLog[]): InsightDTO[] {
   const overlap2 = Array.from(lowSleepDays).filter((d) => lowMoodDays.has(d)).length;
   if (lowSleepDays.size > 0) {
     const score = overlap2 / lowSleepDays.size;
-    if (score >= 0.5) {
+    if (score >= threshold) {
       insights.push({
         correlationId: "sleep-mood",
         headline: "Short sleep correlates with lower mood",
@@ -138,6 +151,7 @@ function buildInsights(moods: MoodLog[], eating: EatingLog[]): InsightDTO[] {
 
 export const insightsApi = {
   getInsights: async () => {
+    const threshold = getInsightThreshold();
     const [moodRes, eatingRes] = await Promise.all([
       moodApi.list({ limit: 1000 }),
       eatingApi.list({ limit: 1000 }),
@@ -159,20 +173,21 @@ export const insightsApi = {
       } as { data: InsightsResponseDTO };
     }
 
-    const insights = buildInsights(moods, eating);
+    const insights = buildInsights(moods, eating, threshold);
     return {
       data: {
         data: {
           insufficientData: false,
           insights,
           lastUpdated: new Date().toISOString(),
-          threshold: 50,
+          threshold,
         },
       },
     } as { data: InsightsResponseDTO };
   },
 
   getDashboard: async (range: DashboardRange = "30d") => {
+    const threshold = getInsightThreshold();
     const [moodRes, eatingRes] = await Promise.all([
       moodApi.list({ limit: 1000 }),
       eatingApi.list({ limit: 1000 }),
@@ -190,7 +205,7 @@ export const insightsApi = {
       topFoodCategory: topCategory(eating.map((e) => e.foodCategory)),
     };
 
-    const topInsights = buildInsights(moods, eating).slice(0, 3);
+    const topInsights = buildInsights(moods, eating, threshold).slice(0, 3);
 
     return {
       data: {

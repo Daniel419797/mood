@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,6 +32,9 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { authApi } from "@/services/auth";
 import { User, Lock, Trash2 } from "lucide-react";
+
+const INSIGHT_THRESHOLD_KEY = "insight_threshold";
+const DEFAULT_INSIGHT_THRESHOLD = 60;
 
 // ─── Profile name form ───────────────────────────────────────────────────────
 
@@ -202,6 +205,53 @@ function PasswordSection() {
   );
 }
 
+function InsightSettingsSection() {
+  const [threshold, setThreshold] = useState(DEFAULT_INSIGHT_THRESHOLD);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(INSIGHT_THRESHOLD_KEY);
+    if (!raw) return;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return;
+    setThreshold(Math.min(95, Math.max(40, Math.round(parsed))));
+  }, []);
+
+  const saveThreshold = () => {
+    window.localStorage.setItem(INSIGHT_THRESHOLD_KEY, String(threshold));
+    toast.success("Insight threshold saved.");
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Insight Settings</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <p className="text-sm font-medium">Significance threshold: {threshold}%</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Higher thresholds show only stronger correlations.
+          </p>
+        </div>
+        <input
+          type="range"
+          min={40}
+          max={95}
+          step={1}
+          value={threshold}
+          onChange={(e) => setThreshold(Number(e.target.value))}
+          className="h-2 w-full accent-foreground"
+        />
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>40% (more insights)</span>
+          <span>95% (strongest only)</span>
+        </div>
+        <Button size="sm" onClick={saveThreshold}>Save Threshold</Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Danger zone ──────────────────────────────────────────────────────────────
 
 function DangerZone() {
@@ -288,6 +338,8 @@ export default function ProfilePage() {
       <ProfileSection />
       <Separator />
       <PasswordSection />
+      <Separator />
+      <InsightSettingsSection />
       <Separator />
       <DangerZone />
     </div>
