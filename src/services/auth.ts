@@ -26,6 +26,23 @@ function getApiBase(): string {
   return (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 }
 
+function getAuthApiBase(): string {
+  const base = getApiBase();
+  // Convert project-scoped base (/api/v1/p/{projectId}) to canonical /api/v1
+  // so auth endpoints always hit backend auth routes directly.
+  const projectScopedMatch = base.match(/\/api\/v1\/p\/[0-9a-fA-F-]+$/);
+  if (projectScopedMatch) {
+    return base.replace(/\/p\/[0-9a-fA-F-]+$/, "");
+  }
+  if (base.endsWith("/api/v1")) {
+    return base;
+  }
+  if (base) {
+    return `${base}/api/v1`;
+  }
+  return "/api/v1";
+}
+
 function extractProjectIdFromApiBase(base: string): string | null {
   const m = base.match(/\/api\/v1\/p\/([0-9a-fA-F-]+)$/);
   return m?.[1] ?? null;
@@ -69,7 +86,7 @@ export const authApi = {
   register: (data: RegisterRequestDTO) =>
     // NexusForge expects `name`, not `displayName`.
     api.post<{ data: ApiUser }>(
-      "/auth/register",
+      `${getAuthApiBase()}/auth/register`,
       { email: data.email, password: data.password, name: data.displayName },
     ).then((res) => ({
       ...res,
@@ -80,7 +97,7 @@ export const authApi = {
     })),
 
   login: (data: LoginRequestDTO) =>
-    api.post<{ data: { token?: string; accessToken?: string; user: ApiUser } }>("/auth/login", data).then((res) => ({
+    api.post<{ data: { token?: string; accessToken?: string; user: ApiUser } }>(`${getAuthApiBase()}/auth/login`, data).then((res) => ({
       ...res,
       data: {
         ...res.data,
@@ -94,7 +111,7 @@ export const authApi = {
   getOAuthStartUrl: (provider: "google" | "github") => oauthStartUrl(provider),
 
   exchangeOAuthCode: (code: string) =>
-    api.post<{ data: OAuthExchangePayload }>("/auth/oauth/exchange", { code }).then((res) => ({
+    api.post<{ data: OAuthExchangePayload }>(`${getAuthApiBase()}/auth/oauth/exchange`, { code }).then((res) => ({
       ...res,
       data: {
         ...res.data,
@@ -105,10 +122,10 @@ export const authApi = {
       },
     })) as unknown as Promise<{ data: LoginResponseDTO }>,
 
-  logout: () => api.post("/auth/logout"),
+  logout: () => api.post(`${getAuthApiBase()}/auth/logout`),
 
   getProfile: () =>
-    api.get<{ data: ApiUser }>("/auth/me").then((res) => ({
+    api.get<{ data: ApiUser }>(`${getAuthApiBase()}/auth/me`).then((res) => ({
       ...res,
       data: {
         ...res.data,
@@ -118,7 +135,7 @@ export const authApi = {
 
   updateProfile: (data: UpdateProfileRequestDTO) =>
     // NexusForge PATCH /auth/me accepts `name`.
-    api.patch<{ data: ApiUser }>("/auth/me", {
+    api.patch<{ data: ApiUser }>(`${getAuthApiBase()}/auth/me`, {
       ...(data.displayName !== undefined ? { name: data.displayName } : {}),
       ...(data.currentPassword !== undefined ? { currentPassword: data.currentPassword } : {}),
       ...(data.newPassword !== undefined ? { newPassword: data.newPassword } : {}),
@@ -130,5 +147,5 @@ export const authApi = {
       },
     })),
 
-  deleteAccount: () => api.delete("/auth/me"),
+  deleteAccount: () => api.delete(`${getAuthApiBase()}/auth/me`),
 };
