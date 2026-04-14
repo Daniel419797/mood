@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import type { Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,6 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthContext";
+import { newPasswordSchema, PASSWORD_POLICY_HINT } from "@/lib/passwordPolicy";
 import { authApi } from "@/services/auth";
 import { User, Lock, Trash2 } from "lucide-react";
 
@@ -107,10 +108,7 @@ function ProfileSection() {
 const passwordSchema = z
   .object({
     currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z
-      .string()
-      .min(8, "New password must be at least 8 characters")
-      .regex(/\d/, "New password must contain at least one number"),
+    newPassword: newPasswordSchema,
     confirmNewPassword: z.string(),
   })
   .refine((d) => d.newPassword === d.confirmNewPassword, {
@@ -176,8 +174,9 @@ function PasswordSection() {
                 <FormItem>
                   <FormLabel>New Password</FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <Input type="password" placeholder="Strong password" {...field} />
                   </FormControl>
+                  <p className="text-xs text-muted-foreground">{PASSWORD_POLICY_HINT}</p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -206,15 +205,23 @@ function PasswordSection() {
 }
 
 function InsightSettingsSection() {
-  const [threshold, setThreshold] = useState(DEFAULT_INSIGHT_THRESHOLD);
+  const [threshold, setThreshold] = useState(() => {
+    if (typeof window === "undefined") {
+      return DEFAULT_INSIGHT_THRESHOLD;
+    }
 
-  useEffect(() => {
     const raw = window.localStorage.getItem(INSIGHT_THRESHOLD_KEY);
-    if (!raw) return;
+    if (!raw) {
+      return DEFAULT_INSIGHT_THRESHOLD;
+    }
+
     const parsed = Number(raw);
-    if (!Number.isFinite(parsed)) return;
-    setThreshold(Math.min(95, Math.max(40, Math.round(parsed))));
-  }, []);
+    if (!Number.isFinite(parsed)) {
+      return DEFAULT_INSIGHT_THRESHOLD;
+    }
+
+    return Math.min(95, Math.max(40, Math.round(parsed)));
+  });
 
   const saveThreshold = () => {
     window.localStorage.setItem(INSIGHT_THRESHOLD_KEY, String(threshold));

@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { passwordSchema, PASSWORD_POLICY_HINT } from "@/lib/passwordPolicy";
 import { authApi } from "@/services/auth";
 import { Brain, ChartSpline, CircleHelp, Sparkles } from "lucide-react";
 
@@ -26,10 +27,7 @@ const schema = z
   .object({
     displayName: z.string().min(1, "Display name is required").max(100),
     email: z.string().email("Enter a valid email address"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/\d/, "Password must contain at least one number"),
+    password: passwordSchema,
     confirmPassword: z.string(),
   })
   .refine((d) => d.password === d.confirmPassword, {
@@ -181,8 +179,9 @@ export default function RegisterPage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Min 8 chars, at least 1 digit" {...field} />
+                      <Input type="password" placeholder="Strong password" {...field} />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground">{PASSWORD_POLICY_HINT}</p>
                     <FormMessage />
                   </FormItem>
                 )}
