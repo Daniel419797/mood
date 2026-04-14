@@ -66,7 +66,7 @@ export default function RegisterPage() {
     }
   };
 
-  const startOAuth = (provider: "google" | "github") => {
+  const startOAuth = (provider: "google") => {
     const url = authApi.getOAuthStartUrl(provider);
     window.location.href = url;
   };
@@ -133,9 +133,6 @@ export default function RegisterPage() {
             <CardContent>
           <div className="space-y-2">
             <Button type="button" variant="outline" className="w-full" onClick={() => startOAuth("google")}>Continue with Google</Button>
-            <Button type="button" variant="outline" className="w-full" onClick={() => startOAuth("github")}>
-              Continue with GitHub
-            </Button>
           </div>
 
           <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">

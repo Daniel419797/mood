@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, isToday, parseISO } from "date-fns";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/link-button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +34,7 @@ const categoryColor: Record<string, string> = {
 
 function EatingRow({ entry, onDeleted }: { entry: EatingLog; onDeleted: (id: string) => void }) {
   const [deleting, setDeleting] = useState(false);
+  const isSkippedMeal = entry.foodCategory === "Skipped";
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -51,7 +52,13 @@ function EatingRow({ entry, onDeleted }: { entry: EatingLog; onDeleted: (id: str
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 items-center gap-3 md:grid-cols-[130px_1fr_90px_80px_90px_56px]">
+        <div
+          className={`grid grid-cols-1 items-center gap-3 ${
+            isSkippedMeal
+              ? "md:grid-cols-[130px_1fr_90px_90px_56px]"
+              : "md:grid-cols-[130px_1fr_90px_80px_90px_56px]"
+          }`}
+        >
           <div>
             <p className="text-[11px] text-muted-foreground">{isToday(new Date(entry.loggedAt)) ? "Today" : "Earlier"}</p>
             <p className="font-semibold">{format(parseISO(entry.loggedAt), "p")}</p>
@@ -67,10 +74,12 @@ function EatingRow({ entry, onDeleted }: { entry: EatingLog; onDeleted: (id: str
             <Badge className={categoryColor[entry.foodCategory] ?? ""}>{entry.foodCategory}</Badge>
           </div>
 
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Portion</p>
-            <p className="font-medium">{entry.portionRating}</p>
-          </div>
+          {!isSkippedMeal && (
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Portion</p>
+              <p className="font-medium">{entry.portionRating}</p>
+            </div>
+          )}
 
           <div>
             <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Hunger</p>
@@ -110,24 +119,22 @@ export default function EatingHistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [filtered, setFiltered] = useState<EatingLog[]>([]);
 
   useEffect(() => {
     eatingApi
       .list({ limit: 200 })
       .then((res) => {
         setEntries(res.data.data);
-        setFiltered(res.data.data);
       })
       .catch(() => toast.error("Failed to load eating history."))
       .finally(() => setIsLoading(false));
   }, []);
 
-  useEffect(() => {
+  const filtered = useMemo(() => {
     let result = [...entries];
     if (from) result = result.filter((e) => e.loggedAt >= from);
     if (to) result = result.filter((e) => e.loggedAt <= `${to}T23:59:59Z`);
-    setFiltered(result);
+    return result;
   }, [from, to, entries]);
 
   const grouped = useMemo(() => {

@@ -137,6 +137,14 @@ export function EatingForm({ existing, noLogsToday }: EatingFormProps) {
     });
   }, [existing, form]);
 
+  const selectedFoodCategory = form.watch("foodCategory");
+  const isSkippedMeal = selectedFoodCategory === "Skipped";
+
+  useEffect(() => {
+    if (!isSkippedMeal) return;
+    form.setValue("portionRating", "Small", { shouldValidate: true });
+  }, [isSkippedMeal, form]);
+
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
     try {
@@ -247,36 +255,40 @@ export function EatingForm({ existing, noLogsToday }: EatingFormProps) {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="portionRating"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Portion Rating</FormLabel>
-                      <div className="flex flex-wrap gap-2">
-                        {(["Small", "Normal", "Large", "Binge"] as const).map((label) => {
-                          const selected = field.value === label;
-                          return (
-                            <button
-                              key={label}
-                              type="button"
-                              onClick={() => field.onChange(label)}
-                              className={`inline-flex h-10 items-center gap-1.5 rounded-lg border px-4 text-sm transition-colors ${
-                                selected
-                                  ? "bg-foreground text-background border-foreground"
-                                  : "border-border hover:bg-muted"
-                              }`}
-                            >
-                              {selected ? <Check className="h-3.5 w-3.5" /> : null}
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {!isSkippedMeal ? (
+                  <FormField
+                    control={form.control}
+                    name="portionRating"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Portion Rating</FormLabel>
+                        <div className="flex flex-wrap gap-2">
+                          {(["Small", "Normal", "Large", "Binge"] as const).map((label) => {
+                            const selected = field.value === label;
+                            return (
+                              <button
+                                key={label}
+                                type="button"
+                                onClick={() => field.onChange(label)}
+                                className={`inline-flex h-10 items-center gap-1.5 rounded-lg border px-4 text-sm transition-colors ${
+                                  selected
+                                    ? "bg-foreground text-background border-foreground"
+                                    : "border-border hover:bg-muted"
+                                }`}
+                              >
+                                {selected ? <Check className="h-3.5 w-3.5" /> : null}
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">Portion is not applicable when meal category is Skipped.</p>
+                )}
               </CardContent>
             </Card>
 
