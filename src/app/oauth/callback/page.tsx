@@ -24,7 +24,7 @@ function OAuthCallbackContent() {
 
       try {
         const res = await authApi.exchangeOAuthCode(code);
-        login(res.data.data.token, res.data.data.user);
+        login(res.data.data.token, res.data.data.user, res.data.data.refreshToken);
         router.replace("/dashboard");
       } catch (err: unknown) {
         const msg =

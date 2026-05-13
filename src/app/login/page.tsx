@@ -46,7 +46,7 @@ export default function LoginPage() {
     setLockoutMessage(null);
     try {
       const res = await authApi.login(values);
-      login(res.data.data.token, res.data.data.user);
+      login(res.data.data.token, res.data.data.user, res.data.data.refreshToken);
       router.push("/dashboard");
     } catch (err: unknown) {
       const error = err as { response?: { status?: number; data?: { message?: string; retryAfter?: string } } };

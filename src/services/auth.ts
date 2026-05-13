@@ -1,4 +1,9 @@
-import api from "@/lib/api";
+import api, {
+  extractProjectIdFromApiBase,
+  getApiBase,
+  getAuthApiBase,
+  withProjectId,
+} from "@/lib/api";
 import type {
   LoginRequestDTO,
   LoginResponseDTO,
@@ -19,41 +24,9 @@ type ApiUser = {
 type OAuthExchangePayload = {
   accessToken?: string;
   token?: string;
+  refreshToken?: string;
   user: ApiUser;
 };
-
-function getApiBase(): string {
-  return (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
-}
-
-function getAuthApiBase(): string {
-  const base = getApiBase();
-  // Convert project-scoped base (/api/v1/p/{projectId}) to canonical /api/v1
-  // so auth endpoints always hit backend auth routes directly.
-  const projectScopedMatch = base.match(/\/api\/v1\/p\/[0-9a-fA-F-]+$/);
-  if (projectScopedMatch) {
-    return base.replace(/\/p\/[0-9a-fA-F-]+$/, "");
-  }
-  if (base.endsWith("/api/v1")) {
-    return base;
-  }
-  if (base) {
-    return `${base}/api/v1`;
-  }
-  return "/api/v1";
-}
-
-function extractProjectIdFromApiBase(base: string): string | null {
-  const m = base.match(/\/api\/v1\/p\/([0-9a-fA-F-]+)$/);
-  return m?.[1] ?? null;
-}
-
-function withProjectId(url: string): string {
-  const projectId = extractProjectIdFromApiBase(getApiBase());
-  if (!projectId) return url;
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}projectId=${encodeURIComponent(projectId)}`;
-}
 
 function oauthStartUrl(provider: "google" | "github"): string {
   const base = getApiBase();
@@ -89,29 +62,34 @@ function toUser(u: ApiUser): User {
   };
 }
 
+function toSession(payload: OAuthExchangePayload) {
+  return {
+    token: payload.token ?? payload.accessToken ?? "",
+    refreshToken: payload.refreshToken,
+    user: toUser(payload.user),
+  };
+}
+
 export const authApi = {
   register: (data: RegisterRequestDTO) =>
     // NexusForge expects `name`, not `displayName`.
-    api.post<{ data: ApiUser }>(
+    api.post<{ data: OAuthExchangePayload }>(
       withProjectId(`${getAuthApiBase()}/auth/register`),
       { email: data.email, password: data.password, name: data.displayName },
     ).then((res) => ({
       ...res,
       data: {
         ...res.data,
-        data: toUser(res.data.data),
+        data: toSession(res.data.data),
       },
     })),
 
   login: (data: LoginRequestDTO) =>
-    api.post<{ data: { token?: string; accessToken?: string; user: ApiUser } }>(withProjectId(`${getAuthApiBase()}/auth/login`), data).then((res) => ({
+    api.post<{ data: OAuthExchangePayload }>(withProjectId(`${getAuthApiBase()}/auth/login`), data).then((res) => ({
       ...res,
       data: {
         ...res.data,
-        data: {
-          token: res.data.data.token ?? res.data.data.accessToken ?? "",
-          user: toUser(res.data.data.user),
-        },
+        data: toSession(res.data.data),
       },
     })) as unknown as Promise<{ data: LoginResponseDTO }>,
 
@@ -122,10 +100,7 @@ export const authApi = {
       ...res,
       data: {
         ...res.data,
-        data: {
-          token: res.data.data.token ?? res.data.data.accessToken ?? "",
-          user: toUser(res.data.data.user),
-        },
+        data: toSession(res.data.data),
       },
     })) as unknown as Promise<{ data: LoginResponseDTO }>,
 

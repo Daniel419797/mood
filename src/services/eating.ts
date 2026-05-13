@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { getStoredUserId } from "@/lib/authTokens";
 import type {
   CreateEatingLogRequestDTO,
   EatingLog,
@@ -20,15 +21,7 @@ type EatingRow = {
 };
 
 function getCurrentUserId(): string {
-  if (typeof window === "undefined") return "";
-  const token = localStorage.getItem("token");
-  if (!token) return "";
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as Record<string, string>;
-    return payload.sub ?? payload.userId ?? payload.id ?? "";
-  } catch {
-    return "";
-  }
+  return getStoredUserId();
 }
 
 function toEatingLog(row: EatingRow): EatingLog {

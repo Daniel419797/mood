@@ -1,4 +1,3 @@
-import api from "@/lib/api";
 import type {
   DashboardRange,
   DashboardResponseDTO,
@@ -12,6 +11,7 @@ import { eatingApi } from "@/services/eating";
 
 const INSIGHT_THRESHOLD_KEY = "insight_threshold";
 const DEFAULT_INSIGHT_THRESHOLD = 60;
+const LOG_FETCH_LIMIT = 100;
 
 function getInsightThreshold(): number {
   if (typeof window === "undefined") return DEFAULT_INSIGHT_THRESHOLD;
@@ -149,15 +149,19 @@ function buildInsights(moods: MoodLog[], eating: EatingLog[], thresholdPct: numb
   return insights.sort((a, b) => b.strengthScore - a.strengthScore);
 }
 
+async function loadLogs() {
+  const moodRes = await moodApi.list({ limit: LOG_FETCH_LIMIT });
+  const eatingRes = await eatingApi.list({ limit: LOG_FETCH_LIMIT });
+  return {
+    moods: moodRes.data.data,
+    eating: eatingRes.data.data,
+  };
+}
+
 export const insightsApi = {
   getInsights: async () => {
     const threshold = getInsightThreshold();
-    const [moodRes, eatingRes] = await Promise.all([
-      moodApi.list({ limit: 1000 }),
-      eatingApi.list({ limit: 1000 }),
-    ]);
-    const moods = moodRes.data.data;
-    const eating = eatingRes.data.data;
+    const { moods, eating } = await loadLogs();
     const allDays = new Set([...moods, ...eating].map((x) => x.loggedAt.slice(0, 10))).size;
     const requiredDays = 7;
 
@@ -188,14 +192,11 @@ export const insightsApi = {
 
   getDashboard: async (range: DashboardRange = "30d") => {
     const threshold = getInsightThreshold();
-    const [moodRes, eatingRes] = await Promise.all([
-      moodApi.list({ limit: 1000 }),
-      eatingApi.list({ limit: 1000 }),
-    ]);
+    const logs = await loadLogs();
 
     const start = rangeStart(range);
-    const moods = moodRes.data.data.filter((m) => inRange(m.loggedAt, start));
-    const eating = eatingRes.data.data.filter((e) => inRange(e.loggedAt, start));
+    const moods = logs.moods.filter((m) => inRange(m.loggedAt, start));
+    const eating = logs.eating.filter((e) => inRange(e.loggedAt, start));
 
     const summary = {
       totalMoodLogs: moods.length,

@@ -22,6 +22,7 @@ export interface LoginRequestDTO {
 export interface LoginResponseDTO {
   data: {
     token: string;
+    refreshToken?: string;
     user: User;
   };
   message: string;

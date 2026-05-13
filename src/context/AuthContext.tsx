@@ -8,13 +8,18 @@ import {
   useState,
 } from "react";
 import { authApi } from "@/services/auth";
+import {
+  clearStoredAuthTokens,
+  getStoredAccessToken,
+  setStoredAuthTokens,
+} from "@/lib/authTokens";
 import type { User } from "@/types";
 
 interface AuthState {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (token: string, user: User) => void;
+  login: (token: string, user: User, refreshToken?: string | null) => void;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -26,8 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const login = useCallback((newToken: string, newUser: User) => {
-    localStorage.setItem("token", newToken);
+  const login = useCallback((newToken: string, newUser: User, refreshToken?: string | null) => {
+    setStoredAuthTokens({ accessToken: newToken, refreshToken });
     setToken(newToken);
     setUser(newUser);
   }, []);
@@ -38,14 +43,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // best-effort
     } finally {
-      localStorage.removeItem("token");
+      clearStoredAuthTokens();
       setToken(null);
       setUser(null);
     }
   }, []);
 
   const refreshUser = useCallback(async () => {
-    const stored = localStorage.getItem("token");
+    const stored = getStoredAccessToken();
     if (!stored) {
       setIsLoading(false);
       return;
@@ -55,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(res.data.data);
       setToken(stored);
     } catch {
-      localStorage.removeItem("token");
+      clearStoredAuthTokens();
       setToken(null);
       setUser(null);
     } finally {
