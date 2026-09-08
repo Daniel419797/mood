@@ -6,7 +6,6 @@ import helmet from "helmet";
 import { allowedOrigins, env } from "./config.js";
 import { authRouter } from "./routes/auth.js";
 import { eatingRouter } from "./routes/eating.js";
-import { insightsRouter } from "./routes/insights.js";
 import { moodsRouter } from "./routes/moods.js";
 import { errorHandler, notFound } from "./middleware/errors.js";
 import { prisma } from "./lib/prisma.js";
@@ -22,7 +21,7 @@ app.use(helmet());
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      if (!origin || allowedOrigins.includes(origin.replace(/\/+$/, ""))) return callback(null, true);
       return callback(new Error("Origin not allowed by CORS"));
     },
     credentials: true,
@@ -52,7 +51,6 @@ app.get("/ready", async (_req, res) => {
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/moods", moodsRouter);
 app.use("/api/v1/eating", eatingRouter);
-app.use("/api/v1", insightsRouter);
 
 app.use(notFound);
 app.use(errorHandler);
