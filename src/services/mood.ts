@@ -1,5 +1,4 @@
 import api from "@/lib/api";
-import { getStoredUserId } from "@/lib/authTokens";
 import type {
   CreateMoodLogRequestDTO,
   ListResponseDTO,
@@ -8,89 +7,22 @@ import type {
   UpdateMoodLogRequestDTO,
 } from "@/types";
 
-type MoodRow = {
-  id: string;
-  user_id: string;
-  mood_score: number;
-  mood_label: MoodLog["moodLabel"];
-  stress_level: number;
-  energy_level: number;
-  sleep_hours: number;
-  workload: MoodLog["workload"];
-  notes?: string;
-  logged_at: string;
-};
-
-function getCurrentUserId(): string {
-  return getStoredUserId();
-}
-
-function toMoodLog(row: MoodRow): MoodLog {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    moodScore: row.mood_score,
-    moodLabel: row.mood_label,
-    stressLevel: row.stress_level,
-    energyLevel: row.energy_level,
-    sleepHours: row.sleep_hours,
-    workload: row.workload,
-    notes: row.notes,
-    loggedAt: row.logged_at,
-  };
-}
-
-function toMoodRowPayload(data: CreateMoodLogRequestDTO | UpdateMoodLogRequestDTO): Partial<MoodRow> {
-  const payload: Partial<MoodRow> = {};
-  if (data.moodScore !== undefined) payload.mood_score = data.moodScore;
-  if (data.moodLabel !== undefined) payload.mood_label = data.moodLabel;
-  if (data.stressLevel !== undefined) payload.stress_level = data.stressLevel;
-  if (data.energyLevel !== undefined) payload.energy_level = data.energyLevel;
-  if (data.sleepHours !== undefined) payload.sleep_hours = data.sleepHours;
-  if (data.workload !== undefined) payload.workload = data.workload;
-  if (data.notes !== undefined) payload.notes = data.notes;
-  return payload;
-}
-
-function asListResponse(rows: MoodLog[], limit: number, offset: number): ListResponseDTO<MoodLog> {
-  return {
-    data: rows,
-    total: rows.length,
-    limit,
-    offset,
-  };
-}
-
 export const moodApi = {
-  list: async (params?: LogQueryParams) => {
-    const limit = params?.limit ?? 200;
-    const offset = 0;
-    const userId = getCurrentUserId();
-    const res = await api.get<{ data: { rows: MoodRow[]; total: number } }>("/table/mood_logs", {
-      params: { limit, offset },
-    });
-    let rows = (res.data.data.rows ?? []).map(toMoodLog);
-    if (userId) rows = rows.filter((r) => r.userId === userId);
-    if (params?.from) rows = rows.filter((r) => r.loggedAt >= params.from!);
-    if (params?.to) rows = rows.filter((r) => r.loggedAt <= `${params.to}T23:59:59Z`);
-    return { ...res, data: asListResponse(rows, limit, offset) };
-  },
+  list: (params?: LogQueryParams) =>
+    api.get<ListResponseDTO<MoodLog>>("/moods", {
+      params: {
+        ...(params?.from ? { from: params.from } : {}),
+        ...(params?.to ? { to: params.to } : {}),
+        limit: params?.limit ?? 200,
+        offset: 0,
+      },
+    }),
 
-  create: async (data: CreateMoodLogRequestDTO) => {
-    const userId = getCurrentUserId();
-    const payload: Partial<MoodRow> = {
-      ...toMoodRowPayload(data),
-      user_id: userId,
-      logged_at: new Date().toISOString(),
-    };
-    const res = await api.post<{ data: MoodRow }>("/table/mood_logs", payload);
-    return { ...res, data: { data: toMoodLog(res.data.data) } };
-  },
+  create: (data: CreateMoodLogRequestDTO) =>
+    api.post<{ data: MoodLog }>("/moods", data),
 
-  update: async (id: string, data: UpdateMoodLogRequestDTO) => {
-    const res = await api.patch<{ data: MoodRow }>(`/table/mood_logs/${id}`, toMoodRowPayload(data));
-    return { ...res, data: { data: toMoodLog(res.data.data) } };
-  },
+  update: (id: string, data: UpdateMoodLogRequestDTO) =>
+    api.patch<{ data: MoodLog }>(`/moods/${id}`, data),
 
-  delete: (id: string) => api.delete(`/table/mood_logs/${id}`),
+  delete: (id: string) => api.delete(`/moods/${id}`),
 };
