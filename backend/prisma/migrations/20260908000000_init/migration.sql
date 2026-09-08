@@ -8,8 +8,9 @@ CREATE TYPE "TimeOfDay" AS ENUM ('Morning', 'Afternoon', 'Evening', 'Night');
 CREATE TABLE "users" (
   "id" UUID NOT NULL,
   "email" VARCHAR(320) NOT NULL,
-  "display_name" VARCHAR(120) NOT NULL,
-  "password_hash" VARCHAR(255) NOT NULL,
+  "display_name" VARCHAR(100) NOT NULL,
+  "password_hash" VARCHAR(255),
+  "google_sub" VARCHAR(255),
   "role" VARCHAR(32) NOT NULL DEFAULT 'USER',
   "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMPTZ(3) NOT NULL,
@@ -63,6 +64,7 @@ CREATE TABLE "eating_logs" (
 );
 
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+CREATE UNIQUE INDEX "users_google_sub_key" ON "users"("google_sub");
 CREATE UNIQUE INDEX "refresh_sessions_token_hash_key" ON "refresh_sessions"("token_hash");
 CREATE INDEX "refresh_sessions_user_id_expires_at_idx" ON "refresh_sessions"("user_id", "expires_at");
 CREATE INDEX "mood_logs_user_id_logged_at_idx" ON "mood_logs"("user_id", "logged_at");
