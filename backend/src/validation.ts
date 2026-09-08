@@ -1,9 +1,18 @@
 import { z } from "zod";
 
+const strongPassword = z
+  .string()
+  .min(12)
+  .max(72)
+  .regex(/[a-z]/)
+  .regex(/[A-Z]/)
+  .regex(/\d/)
+  .regex(/[^A-Za-z0-9]/);
+
 export const registerSchema = z.object({
-  displayName: z.string().trim().min(2).max(120),
+  displayName: z.string().trim().min(1).max(100),
   email: z.email().max(320),
-  password: z.string().min(8).max(72),
+  password: strongPassword,
 });
 
 export const loginSchema = z.object({
@@ -13,9 +22,9 @@ export const loginSchema = z.object({
 
 export const updateProfileSchema = z
   .object({
-    displayName: z.string().trim().min(2).max(120).optional(),
+    displayName: z.string().trim().min(1).max(100).optional(),
     currentPassword: z.string().min(1).max(72).optional(),
-    newPassword: z.string().min(8).max(72).optional(),
+    newPassword: strongPassword.optional(),
   })
   .refine((data) => !data.newPassword || Boolean(data.currentPassword), {
     message: "Current password is required to set a new password.",
@@ -36,7 +45,6 @@ export const createMoodSchema = z.object({
   sleepHours: z.number().min(0).max(24),
   workload: workloadSchema,
   notes: z.string().trim().max(2000).optional(),
-  loggedAt: z.iso.datetime().optional(),
 });
 
 export const updateMoodSchema = createMoodSchema
@@ -55,7 +63,6 @@ export const createEatingSchema = z.object({
   hungerBefore: z.number().int().min(1).max(5),
   timeOfDay: timeOfDaySchema,
   description: z.string().trim().max(2000).optional(),
-  loggedAt: z.iso.datetime().optional(),
 });
 
 export const updateEatingSchema = createEatingSchema
@@ -67,13 +74,4 @@ export const logQuerySchema = z.object({
   to: z.iso.date().optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
-});
-
-export const dashboardQuerySchema = z.object({
-  range: z.enum(["7d", "30d", "all"]).default("30d"),
-  threshold: z.coerce.number().int().min(40).max(95).default(60),
-});
-
-export const insightsQuerySchema = z.object({
-  threshold: z.coerce.number().int().min(40).max(95).default(60),
 });
