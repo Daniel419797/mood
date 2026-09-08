@@ -20,36 +20,26 @@ import { requireAuth, type AuthenticatedRequest } from "../middleware/auth.js";
 import { loginSchema, registerSchema, updateProfileSchema } from "../validation.js";
 
 const router = Router();
-
 const OAUTH_STATE_COOKIE = `${env.COOKIE_NAME}_oauth_state`;
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
-type OAuthState = {
-  state: string;
-  redirectOrigin: string;
-};
-
-type GoogleTokenResponse = {
-  access_token?: string;
-  error?: string;
-  error_description?: string;
-};
-
-type GoogleUserInfo = {
-  sub?: string;
-  email?: string;
-  email_verified?: boolean;
-  name?: string;
-};
+type OAuthState = { state: string; redirectOrigin: string };
+type GoogleTokenResponse = { access_token?: string; error?: string; error_description?: string };
+type GoogleUserInfo = { sub?: string; email?: string; email_verified?: boolean; name?: string };
 
 function normalizeOrigin(value: string): string {
   return new URL(value).origin.replace(/\/+$/, "");
 }
 
 function requireAllowedBrowserOrigin(origin: string | undefined): void {
-  if (origin && !allowedOrigins.includes(normalizeOrigin(origin))) {
+  if (!origin) return;
+  let normalized: string;
+  try {
+    normalized = normalizeOrigin(origin);
+  } catch {
     throw new AppError(403, "Origin not allowed.");
   }
+  if (!allowedOrigins.includes(normalized)) throw new AppError(403, "Origin not allowed.");
 }
 
 function publicUser(user: Pick<User, "id" | "email" | "displayName" | "role" | "createdAt">) {
@@ -76,14 +66,11 @@ const authLimiter = rateLimit({
   },
 });
 
-async function createSessionResponse(res: Response, user: User, status = 200) {
+async function createSessionResponse(res: Response, user: User) {
   const refreshToken = await createRefreshSession(user.id);
   setRefreshCookie(res, refreshToken);
-  res.status(status).json({
-    data: {
-      token: signAccessToken(user.id),
-      user: publicUser(user),
-    },
+  res.json({
+    data: { token: signAccessToken(user.id), user: publicUser(user) },
     message: "Authenticated.",
   });
 }
@@ -139,42 +126,27 @@ function clearOAuthStateCookie(res: Response): void {
 router.post("/register", authLimiter, async (req, res) => {
   const data = registerSchema.parse(req.body);
   const email = data.email.trim().toLowerCase();
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (existing) throw new AppError(409, "An account with that email already exists.");
 
-  if (existing?.passwordHash) {
-    throw new AppError(409, "An account with that email already exists.");
-  }
-
-  const passwordHash = await hashPassword(data.password);
-
-  const user = existing
-    ? await prisma.user.update({
-        where: { id: existing.id },
-        data: { displayName: data.displayName, passwordHash },
-      })
-    : await prisma.user.create({
-        data: {
-          email,
-          displayName: data.displayName,
-          passwordHash,
-        },
-      });
-
-  res.status(201).json({
-    data: publicUser(user),
-    message: "Account created.",
+  const user = await prisma.user.create({
+    data: {
+      email,
+      displayName: data.displayName,
+      passwordHash: await hashPassword(data.password),
+    },
   });
+
+  res.status(201).json({ data: publicUser(user), message: "Account created." });
 });
 
 router.post("/login", authLimiter, async (req, res) => {
   const data = loginSchema.parse(req.body);
   const email = data.email.trim().toLowerCase();
   const user = await prisma.user.findUnique({ where: { email } });
-
   if (!user?.passwordHash || !(await verifyPassword(data.password, user.passwordHash))) {
     throw new AppError(401, "Invalid email or password.");
   }
-
   await createSessionResponse(res, user);
 });
 
@@ -189,14 +161,12 @@ router.get("/oauth/google", async (req, res) => {
   } catch {
     throw new AppError(400, "Invalid OAuth redirect origin.");
   }
-
   if (!allowedOrigins.includes(redirectOrigin)) {
     throw new AppError(403, "OAuth redirect origin is not allowed.");
   }
 
   const state = crypto.randomBytes(32).toString("base64url");
   setOAuthStateCookie(res, { state, redirectOrigin });
-
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: googleCallbackUrl(req),
@@ -205,7 +175,6 @@ router.get("/oauth/google", async (req, res) => {
     state,
     prompt: "select_account",
   });
-
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
 });
 
@@ -217,11 +186,9 @@ router.get("/oauth/google/callback", async (req, res) => {
 
   try {
     const { clientId, clientSecret } = requireGoogleConfig();
-
     if (!cookieState || !queryState || cookieState.state !== queryState || !code) {
       throw new AppError(400, "Invalid Google OAuth callback.");
     }
-
     clearOAuthStateCookie(res);
 
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -235,7 +202,6 @@ router.get("/oauth/google/callback", async (req, res) => {
         grant_type: "authorization_code",
       }),
     });
-
     const tokenPayload = (await tokenResponse.json()) as GoogleTokenResponse;
     if (!tokenResponse.ok || !tokenPayload.access_token) {
       throw new AppError(401, tokenPayload.error_description ?? "Google authorization failed.");
@@ -245,28 +211,18 @@ router.get("/oauth/google/callback", async (req, res) => {
       headers: { Authorization: `Bearer ${tokenPayload.access_token}` },
     });
     const profile = (await profileResponse.json()) as GoogleUserInfo;
-
     if (!profileResponse.ok || !profile.sub || !profile.email || profile.email_verified !== true) {
       throw new AppError(401, "Google did not return a verified account.");
     }
 
     const email = profile.email.trim().toLowerCase();
-    let user = await prisma.user.findFirst({
-      where: {
-        OR: [{ googleSub: profile.sub }, { email }],
-      },
-    });
-
+    let user = await prisma.user.findFirst({ where: { OR: [{ googleSub: profile.sub }, { email }] } });
     if (user) {
       if (user.googleSub && user.googleSub !== profile.sub) {
         throw new AppError(409, "This email is already linked to another Google account.");
       }
-
       if (!user.googleSub) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { googleSub: profile.sub },
-        });
+        user = await prisma.user.update({ where: { id: user.id }, data: { googleSub: profile.sub } });
       }
     } else {
       user = await prisma.user.create({
@@ -284,13 +240,11 @@ router.get("/oauth/google/callback", async (req, res) => {
     res.redirect(`${redirectOrigin}/oauth/callback?oauth=success`);
   } catch (error) {
     clearOAuthStateCookie(res);
-
     if (redirectOrigin && allowedOrigins.includes(redirectOrigin)) {
       const message = error instanceof AppError ? error.message : "Google sign-in failed.";
       res.redirect(`${redirectOrigin}/oauth/callback?error=${encodeURIComponent(message)}`);
       return;
     }
-
     throw error;
   }
 });
@@ -304,13 +258,9 @@ router.post("/refresh", authLimiter, async (req, res) => {
     const { userId, newToken } = await rotateRefreshSession(token);
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new AppError(401, "Refresh session is no longer valid.");
-
     setRefreshCookie(res, newToken);
     res.json({
-      data: {
-        token: signAccessToken(user.id),
-        user: publicUser(user),
-      },
+      data: { token: signAccessToken(user.id), user: publicUser(user) },
       message: "Session refreshed.",
     });
   } catch (error) {
@@ -365,14 +315,10 @@ router.patch("/me", requireAuth, async (req, res) => {
   });
 
   if (passwordHash) {
-    await prisma.refreshSession.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await prisma.refreshSession.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
     const refreshToken = await createRefreshSession(userId);
     setRefreshCookie(res, refreshToken);
   }
-
   res.json({ data: publicUser(user) });
 });
 
