@@ -17,9 +17,12 @@ const envSchema = z.object({
   COOKIE_SECURE: booleanString.default("false"),
   COOKIE_SAME_SITE: z.enum(["lax", "strict", "none"]).default("lax"),
   TRUST_PROXY: booleanString.default("false"),
+  PUBLIC_API_URL: z.url().optional(),
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);
 export const allowedOrigins = env.CORS_ORIGIN.split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
   .filter(Boolean);

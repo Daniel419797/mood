@@ -18,10 +18,8 @@ function dateWhere(from?: string, to?: string) {
 router.get("/", async (req, res) => {
   const { userId } = (req as AuthenticatedRequest).auth;
   const query = logQuerySchema.parse(req.query);
-  const where = {
-    userId,
-    ...(dateWhere(query.from, query.to) ? { loggedAt: dateWhere(query.from, query.to) } : {}),
-  };
+  const loggedAt = dateWhere(query.from, query.to);
+  const where = { userId, ...(loggedAt ? { loggedAt } : {}) };
 
   const [rows, total] = await prisma.$transaction([
     prisma.moodLog.findMany({
@@ -39,41 +37,22 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   const { userId } = (req as AuthenticatedRequest).auth;
   const data = createMoodSchema.parse(req.body);
-  const row = await prisma.moodLog.create({
-    data: {
-      userId,
-      moodScore: data.moodScore,
-      moodLabel: data.moodLabel,
-      stressLevel: data.stressLevel,
-      energyLevel: data.energyLevel,
-      sleepHours: data.sleepHours,
-      workload: data.workload,
-      notes: data.notes,
-      ...(data.loggedAt ? { loggedAt: new Date(data.loggedAt) } : {}),
-    },
-  });
+  const row = await prisma.moodLog.create({ data: { userId, ...data } });
   res.status(201).json({ data: row });
-});
-
-router.get("/:id", async (req, res) => {
-  const { userId } = (req as AuthenticatedRequest).auth;
-  const row = await prisma.moodLog.findFirst({ where: { id: req.params.id, userId } });
-  if (!row) throw new AppError(404, "Mood log not found.");
-  res.json({ data: row });
 });
 
 router.patch("/:id", async (req, res) => {
   const { userId } = (req as AuthenticatedRequest).auth;
   const data = updateMoodSchema.parse(req.body);
-  const existing = await prisma.moodLog.findFirst({ where: { id: req.params.id, userId }, select: { id: true } });
+  const existing = await prisma.moodLog.findFirst({
+    where: { id: req.params.id, userId },
+    select: { id: true },
+  });
   if (!existing) throw new AppError(404, "Mood log not found.");
 
   const row = await prisma.moodLog.update({
     where: { id: existing.id },
-    data: {
-      ...data,
-      ...(data.loggedAt ? { loggedAt: new Date(data.loggedAt) } : {}),
-    },
+    data,
   });
   res.json({ data: row });
 });

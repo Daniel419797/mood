@@ -1,9 +1,4 @@
-import api, {
-  extractProjectIdFromApiBase,
-  getApiBase,
-  getAuthApiBase,
-  withProjectId,
-} from "@/lib/api";
+import api, { getApiBase } from "@/lib/api";
 import type {
   LoginRequestDTO,
   LoginResponseDTO,
@@ -12,122 +7,38 @@ import type {
   User,
 } from "@/types";
 
-type ApiUser = {
-  id: string;
-  email: string;
-  name?: string;
-  displayName?: string;
-  role: string;
-  createdAt?: string;
-};
-
-type OAuthExchangePayload = {
-  accessToken?: string;
-  token?: string;
-  refreshToken?: string;
-  user: ApiUser;
-};
-
-function oauthStartUrl(provider: "google" | "github"): string {
-  const base = getApiBase();
-  const redirect = typeof window !== "undefined" ? window.location.origin : "";
-  const projectId = extractProjectIdFromApiBase(base);
-  const q = new URLSearchParams();
-  if (redirect) q.set("redirect", redirect);
-  if (projectId) q.set("projectId", projectId);
-
-  // Strip /p/{projectId} suffix so auth routes resolve correctly
-  // e.g. /api/v1/p/{id} → /api/v1
-  const authBase = projectId ? base.replace(/\/p\/[0-9a-fA-F-]+$/, "") : base;
-  const qs = q.toString() ? `?${q.toString()}` : "";
-
-  if (authBase.endsWith("/api/v1")) {
-    return `${authBase}/auth/oauth/${provider}${qs}`;
-  }
-
-  if (authBase) {
-    return `${authBase}/api/v1/auth/oauth/${provider}${qs}`;
-  }
-
-  return `/api/v1/auth/oauth/${provider}${qs}`;
-}
-
-function toUser(u: ApiUser): User {
-  return {
-    id: u.id,
-    email: u.email,
-    displayName: u.displayName ?? u.name ?? "",
-    role: u.role,
-    createdAt: u.createdAt ?? new Date().toISOString(),
+type SessionResponse = {
+  data: {
+    token: string;
+    user: User;
   };
-}
-
-function toSession(payload: OAuthExchangePayload) {
-  return {
-    token: payload.token ?? payload.accessToken ?? "",
-    refreshToken: payload.refreshToken,
-    user: toUser(payload.user),
-  };
-}
+  message: string;
+};
 
 export const authApi = {
   register: (data: RegisterRequestDTO) =>
-    // NexusForge expects `name`, not `displayName`.
-    api.post<{ data: OAuthExchangePayload }>(
-      withProjectId(`${getAuthApiBase()}/auth/register`),
-      { email: data.email, password: data.password, name: data.displayName },
-    ).then((res) => ({
-      ...res,
-      data: {
-        ...res.data,
-        data: toSession(res.data.data),
-      },
-    })),
+    api.post<{ data: User; message: string }>("/auth/register", data),
 
   login: (data: LoginRequestDTO) =>
-    api.post<{ data: OAuthExchangePayload }>(withProjectId(`${getAuthApiBase()}/auth/login`), data).then((res) => ({
-      ...res,
-      data: {
-        ...res.data,
-        data: toSession(res.data.data),
-      },
-    })) as unknown as Promise<{ data: LoginResponseDTO }>,
+    api.post<SessionResponse>("/auth/login", data) as unknown as Promise<{ data: LoginResponseDTO }>,
 
-  getOAuthStartUrl: (provider: "google" | "github") => oauthStartUrl(provider),
+  getOAuthStartUrl: (provider: "google") => {
+    if (typeof window === "undefined") return "";
+    const apiBase = new URL(getApiBase(), window.location.origin);
+    const url = new URL(`${apiBase.toString().replace(/\/+$/, "")}/auth/oauth/${provider}`);
+    url.searchParams.set("redirect", window.location.origin);
+    return url.toString();
+  },
 
-  exchangeOAuthCode: (code: string) =>
-    api.post<{ data: OAuthExchangePayload }>(withProjectId(`${getAuthApiBase()}/auth/oauth/exchange`), { code }).then((res) => ({
-      ...res,
-      data: {
-        ...res.data,
-        data: toSession(res.data.data),
-      },
-    })) as unknown as Promise<{ data: LoginResponseDTO }>,
+  completeOAuth: () =>
+    api.post<SessionResponse>("/auth/refresh", {}) as unknown as Promise<{ data: LoginResponseDTO }>,
 
-  logout: () => api.post(withProjectId(`${getAuthApiBase()}/auth/logout`)),
+  logout: () => api.post("/auth/logout"),
 
-  getProfile: () =>
-    api.get<{ data: ApiUser }>(withProjectId(`${getAuthApiBase()}/auth/me`)).then((res) => ({
-      ...res,
-      data: {
-        ...res.data,
-        data: toUser(res.data.data),
-      },
-    })),
+  getProfile: () => api.get<{ data: User }>("/auth/me"),
 
   updateProfile: (data: UpdateProfileRequestDTO) =>
-    // NexusForge PATCH /auth/me accepts `name`.
-    api.patch<{ data: ApiUser }>(withProjectId(`${getAuthApiBase()}/auth/me`), {
-      ...(data.displayName !== undefined ? { name: data.displayName } : {}),
-      ...(data.currentPassword !== undefined ? { currentPassword: data.currentPassword } : {}),
-      ...(data.newPassword !== undefined ? { newPassword: data.newPassword } : {}),
-    }).then((res) => ({
-      ...res,
-      data: {
-        ...res.data,
-        data: toUser(res.data.data),
-      },
-    })),
+    api.patch<{ data: User }>("/auth/me", data),
 
-  deleteAccount: () => api.delete(withProjectId(`${getAuthApiBase()}/auth/me`)),
+  deleteAccount: () => api.delete("/auth/me"),
 };

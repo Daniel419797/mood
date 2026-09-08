@@ -2,45 +2,50 @@
 
 ## Scope
 
-The backend supports accounts, mood logs, eating logs, dashboard summaries, and deterministic insights.
+The backend exists only to support the current MindfulMorsel frontend.
 
-It intentionally excludes microservices, queues, Redis, real-time sockets, payments, social features, and AI-generated health advice.
+It provides:
+
+- email/password accounts;
+- Google sign-in;
+- access and refresh sessions;
+- profile name updates;
+- password changes for password-based accounts;
+- account deletion;
+- mood log persistence;
+- eating log persistence;
+- server-side ownership enforcement.
+
+Dashboard summaries and behavioral insight calculations are intentionally not backend endpoints because the current frontend already computes them from the authenticated user's mood and eating logs.
 
 ## Core entities
 
 ### User
-Owns all private records.
+
+Owns all private records. `passwordHash` is nullable for Google-only accounts. `googleSub` stores the stable Google account subject when Google sign-in is linked.
 
 ### MoodLog
-Stores mood score/label, stress, energy, sleep, workload, optional notes, and logged time.
+
+Stores exactly the fields submitted and rendered by the frontend: mood score/label, stress, energy, sleep hours, workload, notes, and server-generated log time.
 
 ### EatingLog
-Stores meal type, food category, portion, hunger-before score, time of day, optional description, and logged time.
+
+Stores exactly the fields submitted and rendered by the frontend: meal type, food category, portion, hunger-before score, time of day, description, and server-generated log time.
 
 ### RefreshSession
-Stores only a SHA-256 hash of a random refresh token. Refresh sessions can be rotated and revoked.
+
+Stores only a SHA-256 hash of the random refresh token. The raw refresh token exists only in the HttpOnly cookie.
 
 ## Ownership invariant
 
-Every read/update/delete for mood and eating data must include the authenticated `userId` in the database predicate.
+Every mood/eating read, update, and delete includes the authenticated `userId` in the database predicate. The API never returns all users' records for browser-side filtering.
 
-The API must never retrieve all users' records and rely on browser-side filtering.
+## API prefix
 
-## Insight rules
+`/api/v1`
 
-v1 uses deterministic correlations only:
-
-1. high-stress days versus sugary/junk choices;
-2. short-sleep days versus low mood.
-
-At least seven tracked days are required before the insights endpoint reports sufficient data.
-
-## API contract
-
-Base prefix: `/api/v1`
-
-See `README.md` for the endpoint list and request authentication format.
+See `backend/README.md` for the exact routes used by the frontend.
 
 ## Deployment model
 
-One Node.js API process and one PostgreSQL database are sufficient for v1.
+One Node.js API process plus one PostgreSQL database is sufficient. No Redis, queues, WebSockets, microservices, analytics service, or AI service is required by the current frontend.

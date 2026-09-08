@@ -2,13 +2,15 @@ import axios, { type AxiosRequestConfig } from "axios";
 import {
   clearStoredAuthTokens,
   getStoredAccessToken,
-  getStoredRefreshToken,
   setStoredAuthTokens,
 } from "@/lib/authTokens";
 
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "/api/v1").replace(/\/+$/, "");
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: API_BASE,
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 });
 
 const MAX_TRANSIENT_RETRIES = 3;
@@ -23,9 +25,8 @@ type RetryableRequestConfig = AxiosRequestConfig & {
 };
 
 type AuthRefreshPayload = {
-  accessToken?: string;
   token?: string;
-  refreshToken?: string;
+  accessToken?: string;
 };
 
 function sleep(ms: number): Promise<void> {
@@ -33,38 +34,12 @@ function sleep(ms: number): Promise<void> {
 }
 
 export function getApiBase(): string {
-  return (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
-}
-
-export function getAuthApiBase(): string {
-  const base = getApiBase();
-  const projectScopedMatch = base.match(/\/api\/v1\/p\/[0-9a-fA-F-]+$/);
-  if (projectScopedMatch) {
-    return base.replace(/\/p\/[0-9a-fA-F-]+$/, "");
-  }
-  if (base.endsWith("/api/v1")) return base;
-  if (base) return `${base}/api/v1`;
-  return "/api/v1";
-}
-
-export function extractProjectIdFromApiBase(base = getApiBase()): string | null {
-  const m = base.match(/\/api\/v1\/p\/([0-9a-fA-F-]+)$/);
-  return m?.[1] ?? null;
-}
-
-export function withProjectId(url: string): string {
-  const projectId = extractProjectIdFromApiBase();
-  if (!projectId) return url;
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}projectId=${encodeURIComponent(projectId)}`;
+  return API_BASE;
 }
 
 function getBackendHealthUrl(): string | null {
-  const base = getApiBase();
-  if (!base) return null;
-
   try {
-    const parsed = new URL(base);
+    const parsed = new URL(API_BASE, typeof window !== "undefined" ? window.location.origin : "http://localhost");
     return `${parsed.origin}/health`;
   } catch {
     return null;
@@ -80,35 +55,25 @@ async function wakeBackendOnce(): Promise<void> {
 
   wakePromise = (async () => {
     try {
-      // no-cors still triggers the request and wakes Render even when CORS is strict.
       await fetch(healthUrl, { method: "GET", mode: "no-cors", cache: "no-store" });
     } catch {
-      // Ignore warmup failures; retry interceptor handles transient failures.
+      // Best effort only. The retry interceptor handles transient failures.
     }
   })();
 
   await wakePromise;
 }
 
-function extractAuthTokens(payload: unknown): AuthRefreshPayload | null {
+function extractAccessToken(payload: unknown): string | null {
   if (!payload || typeof payload !== "object") return null;
 
   const envelope = payload as { data?: unknown };
-  const raw = envelope.data && typeof envelope.data === "object"
-    ? envelope.data as AuthRefreshPayload
-    : payload as AuthRefreshPayload;
+  const raw =
+    envelope.data && typeof envelope.data === "object"
+      ? (envelope.data as AuthRefreshPayload)
+      : (payload as AuthRefreshPayload);
 
-  const accessToken = raw.token ?? raw.accessToken;
-  if (!accessToken) return null;
-
-  return {
-    accessToken,
-    refreshToken: raw.refreshToken,
-  };
-}
-
-function shouldClearAuthForRefreshFailure(status?: number): boolean {
-  return status === 400 || status === 401 || status === 403;
+  return raw.token ?? raw.accessToken ?? null;
 }
 
 function requestPath(config?: RetryableRequestConfig): string {
@@ -126,7 +91,7 @@ function requestPath(config?: RetryableRequestConfig): string {
 function shouldAttemptRefresh(config: RetryableRequestConfig, status?: number): boolean {
   if (status !== 401 || config.__authRetry) return false;
   const pathname = requestPath(config);
-  return !/\/auth\/(?:login|register|oauth\/exchange|refresh|logout)(?:$|\?)/.test(pathname);
+  return !/\/auth\/(?:login|register|oauth|refresh|logout)(?:\/|$|\?)/.test(pathname);
 }
 
 async function refreshAccessToken(): Promise<string> {
@@ -134,49 +99,34 @@ async function refreshAccessToken(): Promise<string> {
     throw new Error("Token refresh is only available in the browser");
   }
 
-  refreshPromise ??= (async () => {
-    const refreshToken = getStoredRefreshToken();
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (apiKey) headers["x-api-key"] = apiKey;
-
-    const response = await axios.post(
-      withProjectId(`${getAuthApiBase()}/auth/refresh`),
-      refreshToken ? { refreshToken } : {},
+  refreshPromise ??= axios
+    .post(
+      `${API_BASE}/auth/refresh`,
+      {},
       {
-        headers,
+        headers: { "Content-Type": "application/json" },
         withCredentials: true,
       },
-    );
+    )
+    .then((response) => {
+      const accessToken = extractAccessToken(response.data);
+      if (!accessToken) {
+        throw new Error("Refresh response did not include an access token");
+      }
 
-    const tokens = extractAuthTokens(response.data);
-    if (!tokens?.accessToken) {
-      throw new Error("Refresh response did not include an access token");
-    }
-
-    setStoredAuthTokens({
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
+      setStoredAuthTokens({ accessToken, refreshToken: null });
+      return accessToken;
+    })
+    .finally(() => {
+      refreshPromise = null;
     });
-
-    return tokens.accessToken;
-  })().finally(() => {
-    refreshPromise = null;
-  });
 
   return refreshPromise;
 }
 
-// Attach JWT from localStorage on every request
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     void wakeBackendOnce();
-  }
-  const apiKey = process.env.NEXT_PUBLIC_API_KEY;
-  if (apiKey) {
-    config.headers["x-api-key"] = apiKey;
-  }
-  if (typeof window !== "undefined") {
     const token = getStoredAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -185,7 +135,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Redirect to /login on 401
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
@@ -218,7 +167,7 @@ api.interceptors.response.use(
         return api.request(config);
       } catch (refreshError) {
         const refreshStatus = (refreshError as { response?: { status?: number } })?.response?.status;
-        if (shouldClearAuthForRefreshFailure(refreshStatus)) {
+        if (refreshStatus === 400 || refreshStatus === 401 || refreshStatus === 403) {
           clearStoredAuthTokens();
           window.location.href = "/login";
         }
@@ -226,19 +175,13 @@ api.interceptors.response.use(
       }
     }
 
-    if (typeof window !== "undefined" && status === 401) {
-      const pathname = requestPath(config);
-
-      // Only force logout when identity verification fails.
-      // Other 401s (e.g., project API-key / gateway auth) should not wipe the session.
-      const isAuthMeEndpoint = /\/auth\/me(?:$|\?)/.test(pathname);
-      if (isAuthMeEndpoint) {
-        clearStoredAuthTokens();
-        window.location.href = "/login";
-      }
+    if (typeof window !== "undefined" && status === 401 && /\/auth\/me(?:$|\?)/.test(requestPath(config))) {
+      clearStoredAuthTokens();
+      window.location.href = "/login";
     }
+
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

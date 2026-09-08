@@ -1,6 +1,21 @@
 # Mood Tracker Backend
 
-A small REST API for the Mood Tracker frontend.
+Small REST API built specifically for the existing MindfulMorsel frontend.
+
+## What the backend owns
+
+- Email/password registration and login
+- Google sign-in
+- Access-token authentication
+- Rotating HttpOnly refresh sessions
+- Profile name changes
+- Password changes for password-based accounts
+- Account deletion
+- Mood log create/list/update/delete
+- Eating log create/list/update/delete
+- Server-side record ownership
+
+The frontend already calculates dashboard statistics and behavioral insights from the user's mood/eating logs, so those calculations are intentionally not duplicated in this backend.
 
 ## Stack
 
@@ -8,10 +23,10 @@ A small REST API for the Mood Tracker frontend.
 - Express 5
 - TypeScript
 - PostgreSQL
-- Prisma ORM 7.10
+- Prisma ORM
+- Zod
+- bcrypt
 - JWT access tokens
-- Rotating refresh sessions stored server-side
-- Zod validation
 
 ## Local setup
 
@@ -22,80 +37,78 @@ npm run prisma:deploy
 npm run dev
 ```
 
-The API defaults to `http://localhost:4000`.
+Frontend:
 
-### PostgreSQL
+```text
+NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+```
 
-Create a PostgreSQL database named `mood_tracker` or replace `DATABASE_URL` and `DIRECT_URL` in `.env`.
+Backend defaults to port `4000`.
 
-## API
+## API used by the frontend
 
-Public:
+Public/session routes:
 
-- `GET /health` (liveness)
-- `GET /ready` (database readiness)
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
+- `GET /api/v1/auth/oauth/google?redirect=<frontend-origin>`
+- `GET /api/v1/auth/oauth/google/callback`
 - `POST /api/v1/auth/refresh`
 - `POST /api/v1/auth/logout`
 
-Authenticated:
+Authenticated routes:
 
 - `GET /api/v1/auth/me`
 - `PATCH /api/v1/auth/me`
 - `DELETE /api/v1/auth/me`
-- `GET|POST /api/v1/moods`
-- `GET|PATCH|DELETE /api/v1/moods/:id`
-- `GET|POST /api/v1/eating`
-- `GET|PATCH|DELETE /api/v1/eating/:id`
-- `GET /api/v1/dashboard?range=7d|30d|all&threshold=60`
-- `GET /api/v1/insights?threshold=60`
+- `GET /api/v1/moods`
+- `POST /api/v1/moods`
+- `PATCH /api/v1/moods/:id`
+- `DELETE /api/v1/moods/:id`
+- `GET /api/v1/eating`
+- `POST /api/v1/eating`
+- `PATCH /api/v1/eating/:id`
+- `DELETE /api/v1/eating/:id`
 
-Protected endpoints use:
+Operational routes:
 
-```http
-Authorization: Bearer <access-token>
+- `GET /health`
+- `GET /ready`
+
+Protected API requests use `Authorization: Bearer <access-token>`. Refresh tokens are stored only in an HttpOnly cookie and are never returned to frontend JavaScript.
+
+## Google OAuth
+
+Create a Google OAuth web client and configure this authorized redirect URI:
+
+```text
+http://localhost:4000/api/v1/auth/oauth/google/callback
 ```
 
-The refresh token is never returned to JavaScript. It is stored in an HttpOnly cookie and rotated on refresh.
-
-## Security properties
-
-- Server-side ownership checks on every user-owned record
-- Password hashing with bcrypt
-- 15-minute access tokens by default
-- Rotating, hashed refresh sessions
-- Refresh-session revocation on logout and password change
-- Rate limiting
-- Helmet security headers
-- Explicit CORS allow-list
-- Database constraints for numeric ranges
-- Request validation through Zod
-- Cascading account deletion
-
-## Production
+For production, use the public backend HTTPS origin instead.
 
 Set:
 
 ```text
+PUBLIC_API_URL=https://api.example.com
+GOOGLE_CLIENT_ID=<google client id>
+GOOGLE_CLIENT_SECRET=<google client secret>
+```
+
+The frontend origin must also appear in `CORS_ORIGIN`.
+
+## Production cookie settings
+
+For a Vercel frontend and a backend hosted on a different site/domain, use:
+
+```text
 NODE_ENV=production
 COOKIE_SECURE=true
-JWT_SECRET=<64+ random characters>
-DATABASE_URL=<runtime postgres URL>
-DIRECT_URL=<direct postgres URL>
-CORS_ORIGIN=https://your-frontend.example
+COOKIE_SAME_SITE=none
 TRUST_PROXY=true
 ```
 
-If frontend and API are truly cross-site rather than same-site subdomains, set `COOKIE_SAME_SITE=none` together with `COOKIE_SECURE=true`.
-
-Apply migrations before starting:
-
-```bash
-npm run prisma:deploy
-npm run build
-npm start
-```
+For same-site subdomains, choose the strictest SameSite value that still supports your deployment topology.
 
 ## Verification
 

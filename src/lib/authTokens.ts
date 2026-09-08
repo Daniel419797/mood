@@ -36,10 +36,12 @@ export function setStoredAuthTokens(tokens: StoredAuthTokens): void {
   localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
   localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
 
-  if (tokens.refreshToken === null) {
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-  } else if (tokens.refreshToken) {
+  // The Mood backend keeps refresh tokens in an HttpOnly cookie. Clear any
+  // legacy provider refresh token unless one is explicitly supplied.
+  if (tokens.refreshToken) {
     localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  } else {
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   }
 
   emitStorageEvent();
