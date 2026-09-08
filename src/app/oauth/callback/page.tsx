@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Brain } from "lucide-react";
@@ -11,19 +11,19 @@ function OAuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
-  const [error, setError] = useState<string | null>(null);
-
-  const code = useMemo(() => searchParams.get("code") || "", [searchParams]);
+  const [error, setError] = useState<string | null>(() => searchParams.get("error"));
 
   useEffect(() => {
     const run = async () => {
-      if (!code) {
-        setError("Missing OAuth authorization code.");
+      if (searchParams.get("oauth") !== "success") {
+        if (!searchParams.get("error")) {
+          setError("OAuth sign-in could not be completed.");
+        }
         return;
       }
 
       try {
-        const res = await authApi.exchangeOAuthCode(code);
+        const res = await authApi.completeOAuth();
         login(res.data.data.token, res.data.data.user, res.data.data.refreshToken);
         router.replace("/dashboard");
       } catch (err: unknown) {
@@ -34,8 +34,8 @@ function OAuthCallbackContent() {
       }
     };
 
-    run();
-  }, [code, login, router]);
+    void run();
+  }, [login, router, searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -49,7 +49,7 @@ function OAuthCallbackContent() {
         {!error ? (
           <>
             <h1 className="text-xl font-semibold">Completing sign in...</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Please wait while we finish your OAuth login.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Please wait while we finish your Google sign-in.</p>
           </>
         ) : (
           <>
@@ -72,7 +72,7 @@ export default function OAuthCallbackPage() {
         <div className="min-h-screen flex items-center justify-center px-4">
           <div className="w-full max-w-md rounded-2xl border bg-background p-6 text-center">
             <h1 className="text-xl font-semibold">Completing sign in...</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Please wait while we finish your OAuth login.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Please wait while we finish your Google sign-in.</p>
           </div>
         </div>
       }
