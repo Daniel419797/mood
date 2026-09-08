@@ -58,7 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await authApi.getProfile();
       setUser(res.data.data);
-      setToken(stored);
+      // getProfile may transparently refresh an expired access token.
+      setToken(getStoredAccessToken());
     } catch {
       clearStoredAuthTokens();
       setToken(null);
