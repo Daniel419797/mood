@@ -1,0 +1,25 @@
+import "dotenv/config";
+import { z } from "zod";
+
+const booleanString = z
+  .enum(["true", "false"])
+  .transform((value) => value === "true");
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+  DATABASE_URL: z.string().min(1),
+  JWT_SECRET: z.string().min(64),
+  ACCESS_TOKEN_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
+  REFRESH_TOKEN_DAYS: z.coerce.number().int().min(1).max(90).default(30),
+  CORS_ORIGIN: z.string().min(1),
+  COOKIE_NAME: z.string().min(1).default("mood_refresh"),
+  COOKIE_SECURE: booleanString.default("false"),
+  COOKIE_SAME_SITE: z.enum(["lax", "strict", "none"]).default("lax"),
+  TRUST_PROXY: booleanString.default("false"),
+});
+
+export const env = envSchema.parse(process.env);
+export const allowedOrigins = env.CORS_ORIGIN.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
