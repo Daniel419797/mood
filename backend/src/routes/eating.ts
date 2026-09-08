@@ -18,10 +18,8 @@ function dateWhere(from?: string, to?: string) {
 router.get("/", async (req, res) => {
   const { userId } = (req as AuthenticatedRequest).auth;
   const query = logQuerySchema.parse(req.query);
-  const where = {
-    userId,
-    ...(dateWhere(query.from, query.to) ? { loggedAt: dateWhere(query.from, query.to) } : {}),
-  };
+  const loggedAt = dateWhere(query.from, query.to);
+  const where = { userId, ...(loggedAt ? { loggedAt } : {}) };
 
   const [rows, total] = await prisma.$transaction([
     prisma.eatingLog.findMany({
@@ -39,40 +37,22 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   const { userId } = (req as AuthenticatedRequest).auth;
   const data = createEatingSchema.parse(req.body);
-  const row = await prisma.eatingLog.create({
-    data: {
-      userId,
-      mealType: data.mealType,
-      foodCategory: data.foodCategory,
-      portionRating: data.portionRating,
-      hungerBefore: data.hungerBefore,
-      timeOfDay: data.timeOfDay,
-      description: data.description,
-      ...(data.loggedAt ? { loggedAt: new Date(data.loggedAt) } : {}),
-    },
-  });
+  const row = await prisma.eatingLog.create({ data: { userId, ...data } });
   res.status(201).json({ data: row });
-});
-
-router.get("/:id", async (req, res) => {
-  const { userId } = (req as AuthenticatedRequest).auth;
-  const row = await prisma.eatingLog.findFirst({ where: { id: req.params.id, userId } });
-  if (!row) throw new AppError(404, "Eating log not found.");
-  res.json({ data: row });
 });
 
 router.patch("/:id", async (req, res) => {
   const { userId } = (req as AuthenticatedRequest).auth;
   const data = updateEatingSchema.parse(req.body);
-  const existing = await prisma.eatingLog.findFirst({ where: { id: req.params.id, userId }, select: { id: true } });
+  const existing = await prisma.eatingLog.findFirst({
+    where: { id: req.params.id, userId },
+    select: { id: true },
+  });
   if (!existing) throw new AppError(404, "Eating log not found.");
 
   const row = await prisma.eatingLog.update({
     where: { id: existing.id },
-    data: {
-      ...data,
-      ...(data.loggedAt ? { loggedAt: new Date(data.loggedAt) } : {}),
-    },
+    data,
   });
   res.json({ data: row });
 });
