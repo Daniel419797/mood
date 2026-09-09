@@ -22,6 +22,7 @@ import { loginSchema, registerSchema, updateProfileSchema } from "../validation.
 const router = Router();
 const OAUTH_STATE_COOKIE = `${env.COOKIE_NAME}_oauth_state`;
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 
 type OAuthState = { state: string; redirectOrigin: string };
 type GoogleTokenResponse = { access_token?: string; error?: string; error_description?: string };
@@ -53,15 +54,14 @@ function publicUser(user: Pick<User, "id" | "email" | "displayName" | "role" | "
 }
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
   limit: 20,
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  handler(req, res) {
-    const resetTime = req.rateLimit?.resetTime;
+  handler(_req, res) {
     res.status(429).json({
       message: "Too many authentication attempts. Try again later.",
-      ...(resetTime ? { retryAfter: resetTime.toISOString() } : {}),
+      retryAfter: new Date(Date.now() + AUTH_RATE_LIMIT_WINDOW_MS).toISOString(),
     });
   },
 });

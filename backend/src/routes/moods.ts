@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
-import { requireAuth, type AuthenticatedRequest } from "../middleware/auth.js";
+import { authenticatedUserId, requireAuth } from "../middleware/auth.js";
 import { AppError } from "../middleware/errors.js";
 import { createMoodSchema, logQuerySchema, updateMoodSchema } from "../validation.js";
 
@@ -16,7 +16,7 @@ function dateWhere(from?: string, to?: string) {
 }
 
 router.get("/", async (req, res) => {
-  const { userId } = (req as AuthenticatedRequest).auth;
+  const userId = authenticatedUserId(req);
   const query = logQuerySchema.parse(req.query);
   const loggedAt = dateWhere(query.from, query.to);
   const where = { userId, ...(loggedAt ? { loggedAt } : {}) };
@@ -35,14 +35,14 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { userId } = (req as AuthenticatedRequest).auth;
+  const userId = authenticatedUserId(req);
   const data = createMoodSchema.parse(req.body);
   const row = await prisma.moodLog.create({ data: { userId, ...data } });
   res.status(201).json({ data: row });
 });
 
 router.patch("/:id", async (req, res) => {
-  const { userId } = (req as AuthenticatedRequest).auth;
+  const userId = authenticatedUserId(req);
   const data = updateMoodSchema.parse(req.body);
   const existing = await prisma.moodLog.findFirst({
     where: { id: req.params.id, userId },
@@ -58,7 +58,7 @@ router.patch("/:id", async (req, res) => {
 });
 
 router.delete("/:id", async (req, res) => {
-  const { userId } = (req as AuthenticatedRequest).auth;
+  const userId = authenticatedUserId(req);
   const deleted = await prisma.moodLog.deleteMany({ where: { id: req.params.id, userId } });
   if (deleted.count === 0) throw new AppError(404, "Mood log not found.");
   res.status(204).send();

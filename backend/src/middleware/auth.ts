@@ -24,3 +24,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     res.status(401).json({ message: "Invalid or expired access token." });
   }
 }
+
+export function authenticatedUserId(req: Request): string {
+  return (req as AuthenticatedRequest).auth.userId;
+}
