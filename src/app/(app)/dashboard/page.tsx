@@ -19,7 +19,7 @@ import { LinkButton } from "@/components/ui/link-button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { insightsApi } from "@/services/insights";
-import type { DashboardRange, DashboardResponseDTO } from "@/types";
+import type { ContinuousCorrelationDTO, DashboardRange, DashboardResponseDTO, InsightDTO } from "@/types";
 import {
   Brain,
   Lightbulb,
@@ -46,6 +46,91 @@ function StatCard({
   );
 }
 
+function dashboardRangeLabel(range: DashboardRange): string {
+  if (range === "7d") return "last 7 days";
+  if (range === "30d") return "last 30 days";
+  return "all time";
+}
+
+function KeyInsightCard({ insight }: Readonly<{ insight: InsightDTO }>) {
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <div className="flex items-center justify-between">
+        <p className="font-semibold">{insight.headline}</p>
+        <Badge variant="secondary">{Math.round(insight.patternConsistency * 100)}% consistency</Badge>
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">{insight.supportingStat}</p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {insight.evidence === "strong" ? "Strong evidence" : "Emerging pattern"} · Association {Math.round(insight.strengthScore * 100)}%
+      </p>
+      <p className="mt-4 border-t pt-3 text-sm">{insight.suggestion}</p>
+    </div>
+  );
+}
+
+function EarlySignalCard({ signal }: Readonly<{ signal: ContinuousCorrelationDTO }>) {
+  const evidenceLabel = signal.evidence === "weak" ? "Early signal" : signal.evidence;
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold">{signal.xLabel} ↔ {signal.yLabel}</p>
+        <Badge variant="outline">{evidenceLabel}</Badge>
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Pearson r={signal.pearson.toFixed(2)} · Spearman ρ={signal.spearman.toFixed(2)}
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {signal.n} paired days · 95% CI {signal.confidenceInterval.low.toFixed(2)} to {signal.confidenceInterval.high.toFixed(2)} · preliminary, not causal
+      </p>
+    </div>
+  );
+}
+
+function KeyInsightsContent({
+  topInsights,
+  earlySignals,
+  daysTracked,
+}: Readonly<{
+  topInsights: InsightDTO[];
+  earlySignals: ContinuousCorrelationDTO[];
+  daysTracked: number;
+}>) {
+  if (topInsights.length > 0) {
+    return topInsights.slice(0, 2).map((insight) => (
+      <KeyInsightCard key={insight.correlationId} insight={insight} />
+    ));
+  }
+
+  if (daysTracked >= 7 && earlySignals.length > 0) {
+    return earlySignals.slice(0, 2).map((signal) => (
+      <EarlySignalCard key={signal.id} signal={signal} />
+    ));
+  }
+
+  const message =
+    daysTracked < 7
+      ? `Early signals unlock after 7 distinct tracked days. You have ${daysTracked}/7.`
+      : "Analysis is running, but the recorded values do not vary enough to estimate a relationship yet.";
+
+  return <div className="rounded-xl border p-6 text-sm text-muted-foreground">{message}</div>;
+}
+
+function InsightProgressNote({ daysTracked }: Readonly<{ daysTracked: number }>) {
+  const message =
+    daysTracked < 7
+      ? "Track on 7 distinct days to unlock early behavioral signals."
+      : "Early signals are preliminary. Keep logging to strengthen estimates and unlock adjusted models.";
+
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-2 p-5 text-sm text-muted-foreground">
+        <Lightbulb className="h-4 w-4" />
+        {message}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardResponseDTO["data"] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,7 +145,7 @@ export default function DashboardPage() {
       .finally(() => setIsLoading(false));
   }, [range]);
 
-  const rangeLabel = range === "7d" ? "last 7 days" : range === "30d" ? "last 30 days" : "all time";
+  const rangeLabel = dashboardRangeLabel(range);
 
   if (isLoading) {
     return (
@@ -198,42 +283,11 @@ export default function DashboardPage() {
             <CardTitle className="text-2xl">Key Insights</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {topInsights.length > 0 ? (
-              topInsights.slice(0, 2).map((insight) => (
-                <div key={insight.correlationId} className="rounded-xl border bg-card p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold">{insight.headline}</p>
-                    <Badge variant="secondary">{Math.round(insight.patternConsistency * 100)}% consistency</Badge>
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{insight.supportingStat}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {insight.evidence === "strong" ? "Strong evidence" : "Emerging pattern"} · Association {Math.round(insight.strengthScore * 100)}%
-                  </p>
-                  <p className="mt-4 border-t pt-3 text-sm">{insight.suggestion}</p>
-                </div>
-              ))
-            ) : summary.daysTracked >= 7 && earlySignals.length > 0 ? (
-              earlySignals.slice(0, 2).map((signal) => (
-                <div key={signal.id} className="rounded-xl border bg-card p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-semibold">{signal.xLabel} ↔ {signal.yLabel}</p>
-                    <Badge variant="outline">{signal.evidence === "weak" ? "Early signal" : signal.evidence}</Badge>
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Pearson r={signal.pearson.toFixed(2)} · Spearman ρ={signal.spearman.toFixed(2)}
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {signal.n} paired days · 95% CI {signal.confidenceInterval.low.toFixed(2)} to {signal.confidenceInterval.high.toFixed(2)} · preliminary, not causal
-                  </p>
-                </div>
-              ))
-            ) : (
-              <div className="rounded-xl border p-6 text-sm text-muted-foreground">
-                {summary.daysTracked < 7
-                  ? `Early signals unlock after 7 distinct tracked days. You have ${summary.daysTracked}/7.`
-                  : "Analysis is running, but the recorded values do not vary enough to estimate a relationship yet."}
-              </div>
-            )}
+            <KeyInsightsContent
+              topInsights={topInsights}
+              earlySignals={earlySignals}
+              daysTracked={summary.daysTracked}
+            />
             <div className="text-right">
               <LinkButton href="/insights" variant="ghost" size="sm">View All</LinkButton>
             </div>
@@ -291,16 +345,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {topInsights.length === 0 && (
-        <Card>
-          <CardContent className="flex items-center gap-2 p-5 text-sm text-muted-foreground">
-            <Lightbulb className="h-4 w-4" />
-            {summary.daysTracked < 7
-              ? "Track on 7 distinct days to unlock early behavioral signals."
-              : "Early signals are preliminary. Keep logging to strengthen estimates and unlock adjusted models."}
-          </CardContent>
-        </Card>
-      )}
+      {topInsights.length === 0 && <InsightProgressNote daysTracked={summary.daysTracked} />}
     </div>
   );
 }
