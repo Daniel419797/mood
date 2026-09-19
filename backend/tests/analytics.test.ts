@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { analyzeBehavioralInsights } from "../src/lib/analytics.js";
+import {
+  analyzeBehavioralInsights,
+  buildEatingFrequency,
+  buildStressFoodCorrelation,
+  normalizeFoodCategory,
+} from "../src/lib/analytics.js";
 
 function loggedAt(day: number): Date {
   return new Date(Date.UTC(2026, 8, day, 12, 0, 0));
@@ -42,7 +47,7 @@ describe("behavioral analytics", () => {
     );
 
     const result = analyzeBehavioralInsights(moods, eating, 60, "Test period");
-    const insight = result.insights.find((item) => item.correlationId === "stress-sugary");
+    const insight = result.insights.find((item) => item.correlationId === "stress-junk");
 
     expect(insight).toBeDefined();
     expect(insight?.evidence).toBe("strong");
@@ -62,13 +67,39 @@ describe("behavioral analytics", () => {
     );
 
     const result = analyzeBehavioralInsights(moods, eating, 60, "Test period");
-    const emerging = result.emergingInsights.find((item) => item.correlationId === "stress-sugary");
+    const emerging = result.emergingInsights.find((item) => item.correlationId === "stress-junk");
 
     expect(emerging).toBeDefined();
     expect(emerging?.evidence).toBe("emerging");
     expect(emerging?.patternConsistency).toBe(0.5);
     expect(emerging?.triggerOutcomeRate).toBe(0.5);
     expect(emerging?.baselineOutcomeRate).toBeCloseTo(1 / 6, 4);
+  });
+
+  it("normalizes legacy Sugary records into the client-approved Junk category", () => {
+    expect(normalizeFoodCategory("Sugary")).toBe("Junk");
+
+    const eating = [
+      meal(1, "Sugary"),
+      meal(1, "Junk"),
+      meal(2, "Healthy"),
+    ];
+    expect(buildEatingFrequency(eating)).toEqual([
+      { foodCategory: "Healthy", count: 1 },
+      { foodCategory: "Junk", count: 2 },
+    ]);
+
+    const moods = [
+      mood(1, { stressLevel: 4 }),
+      mood(2, { stressLevel: 2 }),
+    ];
+    expect(buildStressFoodCorrelation(moods, eating)).toEqual([
+      { stressLevel: "1", Healthy: 0, Junk: 0, Neutral: 0, Skipped: 0 },
+      { stressLevel: "2", Healthy: 1, Junk: 0, Neutral: 0, Skipped: 0 },
+      { stressLevel: "3", Healthy: 0, Junk: 0, Neutral: 0, Skipped: 0 },
+      { stressLevel: "4", Healthy: 0, Junk: 2, Neutral: 0, Skipped: 0 },
+      { stressLevel: "5", Healthy: 0, Junk: 0, Neutral: 0, Skipped: 0 },
+    ]);
   });
 
   it("does not manufacture an association when trigger and outcome rates are the same", () => {
@@ -81,7 +112,7 @@ describe("behavioral analytics", () => {
 
     const result = analyzeBehavioralInsights(moods, eating, 40, "Test period");
     const falsePositive = [...result.insights, ...result.emergingInsights].find(
-      (item) => item.correlationId === "stress-sugary",
+      (item) => item.correlationId === "stress-junk",
     );
 
     expect(falsePositive).toBeUndefined();

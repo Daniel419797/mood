@@ -32,7 +32,7 @@ Every mood/eating read, update, delete, dashboard query, and insight query is sc
 
 Analytics are generated server-side from the user's records in the requested 7d, 30d, or all range.
 
-The engine groups records into daily aggregates and requires at least seven tracked days before the dedicated insights view is unlocked.
+The engine groups records into daily aggregates and requires at least seven distinct tracked days before the dedicated insights view is unlocked. At that point, weak continuous estimates may be exposed as clearly labeled preliminary early signals; stronger evidence labels still require larger and more stable samples.
 
 The analytics contract includes:
 
@@ -63,3 +63,9 @@ See backend/README.md for the complete route list.
 ## Deployment model
 
 One Node.js API process plus one PostgreSQL database is sufficient for the current architecture. The analytics engine is part of the API process and does not require a separate analytics service, queue, Redis instance, WebSocket service, or AI model.
+
+## Food-category contract
+
+Client-facing and newly writable food categories are `Healthy`, `Junk`, `Neutral`, and `Skipped`.
+
+The Prisma enum retains the historical `Sugary` value only for backward-compatible reads. Analytics and dashboard aggregations normalize legacy `Sugary` values to `Junk`, and validation rejects `Sugary` on new create/update payloads.

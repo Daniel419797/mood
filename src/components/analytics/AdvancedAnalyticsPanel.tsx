@@ -185,11 +185,112 @@ function LogisticModelCard({ report }: Readonly<{ report: LogisticModelReportDTO
   );
 }
 
+function ContinuousRelationshipsContent({
+  meaningful,
+  early,
+}: Readonly<{
+  meaningful: ContinuousCorrelationDTO[];
+  early: ContinuousCorrelationDTO[];
+}>) {
+  if (meaningful.length > 0) {
+    return (
+      <div className="grid gap-3 lg:grid-cols-2">
+        {meaningful.map((result) => (
+          <CorrelationCard key={result.id} result={result} />
+        ))}
+      </div>
+    );
+  }
+
+  if (early.length > 0) {
+    return (
+      <div className="space-y-3">
+        <Card>
+          <CardContent className="p-4 text-sm text-muted-foreground">
+            Your first seven tracked days are enough to show early signals, but not enough to call them stable. These are shown for transparency and should be treated as preliminary.
+          </CardContent>
+        </Card>
+        <div className="grid gap-3 lg:grid-cols-2">
+          {early.map((result) => (
+            <CorrelationCard
+              key={result.id}
+              result={result}
+              title={"Early signal: " + result.xLabel + " ↔ " + result.yLabel}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-5 text-sm text-muted-foreground">
+        Seven tracked days are available, but the recorded values do not vary enough to estimate a correlation yet. Continue logging normally so the model has contrast to analyze.
+      </CardContent>
+    </Card>
+  );
+}
+
+function LaggedRelationshipsContent({
+  meaningful,
+  early,
+}: Readonly<{
+  meaningful: ContinuousCorrelationDTO[];
+  early: ContinuousCorrelationDTO[];
+}>) {
+  if (meaningful.length > 0) {
+    return (
+      <div className="grid gap-3 lg:grid-cols-2">
+        {meaningful.map((result) => {
+          const direction = "directionLabel" in result ? String(result.directionLabel) : result.xLabel + " → next-day " + result.yLabel;
+          return (
+            <CorrelationCard
+              key={result.id}
+              result={result}
+              title={direction}
+              subtitle={result.n + " consecutive-day pairs"}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (early.length > 0) {
+    return (
+      <div className="grid gap-3 lg:grid-cols-2">
+        {early.map((result) => {
+          const direction = "directionLabel" in result ? String(result.directionLabel) : result.xLabel + " → next-day " + result.yLabel;
+          return (
+            <CorrelationCard
+              key={result.id}
+              result={result}
+              title={"Early signal: " + direction}
+              subtitle={result.n + " consecutive-day pairs · preliminary"}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-5 text-sm text-muted-foreground">
+        Lagged relationships need enough consecutive tracking days and variation in both variables. Continue logging on consecutive days to improve this analysis.
+      </CardContent>
+    </Card>
+  );
+}
+
 export function AdvancedAnalyticsPanel({ data }: Readonly<{ data: AdvancedAnalyticsDTO }>) {
   const meaningfulContinuous = data.continuousCorrelations.filter(
     (result) => result.evidence !== "weak",
   );
+  const earlyContinuous = data.continuousCorrelations.filter((result) => result.evidence === "weak").slice(0, 3);
   const meaningfulLagged = data.laggedEffects.filter((result) => result.evidence !== "weak");
+  const earlyLagged = data.laggedEffects.filter((result) => result.evidence === "weak").slice(0, 2);
 
   return (
     <div className="space-y-6">
@@ -253,20 +354,7 @@ export function AdvancedAnalyticsPanel({ data }: Readonly<{ data: AdvancedAnalyt
           </div>
         </div>
 
-        {meaningfulContinuous.length > 0 ? (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {meaningfulContinuous.map((result) => (
-              <CorrelationCard key={result.id} result={result} />
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="p-5 text-sm text-muted-foreground">
-              No continuous relationship is stable enough to label emerging yet. Weak estimates are
-              retained by the API but are intentionally not promoted in the interface.
-            </CardContent>
-          </Card>
-        )}
+        <ContinuousRelationshipsContent meaningful={meaningfulContinuous} early={earlyContinuous} />
       </section>
 
       <section className="space-y-3">
@@ -311,25 +399,7 @@ export function AdvancedAnalyticsPanel({ data }: Readonly<{ data: AdvancedAnalyt
           </div>
         </div>
 
-        {meaningfulLagged.length > 0 ? (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {meaningfulLagged.map((result) => (
-              <CorrelationCard
-                key={result.id}
-                result={result}
-                title={result.directionLabel}
-                subtitle={result.n + " consecutive-day pairs"}
-              />
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="p-5 text-sm text-muted-foreground">
-              Lagged relationships need enough consecutive tracking days and variation in both
-              variables. Continue logging on consecutive days to improve this analysis.
-            </CardContent>
-          </Card>
-        )}
+        <LaggedRelationshipsContent meaningful={meaningfulLagged} early={earlyLagged} />
       </section>
 
       <Card>

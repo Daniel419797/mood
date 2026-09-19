@@ -92,6 +92,8 @@ describe("advanced behavioral analytics", () => {
     }));
 
     const report = analyzeAdvancedAnalytics(moods, eating);
+    expect(report.continuousCorrelations.length).toBeGreaterThan(0);
+    expect(report.continuousCorrelations.some((result) => result.evidence === "weak")).toBe(true);
     expect(report.quality.analysisClass).toBe("limited");
     expect(report.quality.clinicalValidated).toBe(false);
   });

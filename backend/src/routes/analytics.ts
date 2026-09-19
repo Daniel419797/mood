@@ -7,6 +7,7 @@ import {
   buildMoodTrend,
   buildStressFoodCorrelation,
   countTrackedDays,
+  normalizeFoodCategory,
   topCategory,
 } from "../lib/analytics.js";
 import { authenticatedUserId, requireAuth } from "../middleware/auth.js";
@@ -119,13 +120,14 @@ router.get("/dashboard", async (req, res) => {
     query.threshold,
     rangeLabel(query.range),
   );
+  const advanced = analyzeAdvancedAnalytics(moods, eating);
 
   const summary = {
     totalMoodLogs: moods.length,
     totalEatingLogs: eating.length,
     daysTracked: countTrackedDays(moods, eating),
     topMoodLabel: topCategory(moods.map((mood) => mood.moodLabel)),
-    topFoodCategory: topCategory(eating.map((meal) => meal.foodCategory)),
+    topFoodCategory: topCategory(eating.map((meal) => normalizeFoodCategory(meal.foodCategory))),
   };
 
   const topInsights =
@@ -140,6 +142,7 @@ router.get("/dashboard", async (req, res) => {
       eatingFrequency: buildEatingFrequency(eating),
       stressFoodCorrelation: buildStressFoodCorrelation(moods, eating),
       topInsights,
+      earlySignals: advanced.continuousCorrelations.slice(0, 3),
     },
   });
 });

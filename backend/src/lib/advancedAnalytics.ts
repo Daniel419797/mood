@@ -100,7 +100,7 @@ const VARIABLE_LABELS: Record<VariableKey, string> = {
   energyLevel: "Energy",
   sleepHours: "Sleep hours",
   workloadLevel: "Workload",
-  unhealthyMealRate: "Sugary/junk meal share",
+  unhealthyMealRate: "Junk meal share",
   healthyMealRate: "Healthy meal share",
   skippedMealRate: "Skipped meal share",
   bingeMealRate: "Large/binge meal share",
@@ -459,7 +459,7 @@ function buildLogisticModels(rows: DailyObservation[]): LogisticModelReport[] {
 
   if (outcome.length < 20) return [];
   const model = fitLogisticRegression({
-    outcomeName: "Any sugary/junk food that day",
+    outcomeName: "Any junk food that day",
     predictorNames: predictorKeys.map((key) => VARIABLE_LABELS[key]),
     predictors,
     outcome,
@@ -470,7 +470,7 @@ function buildLogisticModels(rows: DailyObservation[]): LogisticModelReport[] {
     id: "adjusted-unhealthy-food",
     title: "Adjusted food-choice model",
     description:
-      "Models the odds of any sugary/junk food while adjusting simultaneously for stress, mood, sleep, and workload.",
+      "Models the odds of any junk-food choice while adjusting simultaneously for stress, mood, sleep, and workload.",
     model,
   }];
 }

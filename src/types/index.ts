@@ -67,7 +67,8 @@ export type UpdateMoodLogRequestDTO = Partial<CreateMoodLogRequestDTO>;
 // ─── Eating Logs ─────────────────────────────────────────────────────────────
 
 export type MealType = "Breakfast" | "Lunch" | "Dinner" | "Snack" | "Other";
-export type FoodCategory = "Healthy" | "Neutral" | "Sugary" | "Junk" | "Skipped";
+export type FoodCategory = "Healthy" | "Junk" | "Neutral" | "Skipped";
+export type StoredFoodCategory = FoodCategory | "Sugary";
 export type PortionRating = "Small" | "Normal" | "Large" | "Binge";
 export type TimeOfDay = "Morning" | "Afternoon" | "Evening" | "Night";
 
@@ -75,7 +76,7 @@ export interface EatingLog {
   id: string;
   userId: string;
   mealType: MealType;
-  foodCategory: FoodCategory;
+  foodCategory: StoredFoodCategory;
   portionRating: PortionRating;
   hungerBefore: number;
   timeOfDay: TimeOfDay;
@@ -276,7 +277,6 @@ export interface StressFoodPoint {
   stressLevel: string;
   Healthy: number;
   Neutral: number;
-  Sugary: number;
   Junk: number;
   Skipped: number;
 }
@@ -288,6 +288,7 @@ export interface DashboardResponseDTO {
     eatingFrequency: EatingFrequencyPoint[];
     stressFoodCorrelation: StressFoodPoint[];
     topInsights: InsightDTO[];
+    earlySignals: ContinuousCorrelationDTO[];
   };
 }
 

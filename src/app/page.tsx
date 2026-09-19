@@ -136,7 +136,7 @@ export default function Home() {
             <div className="rounded-2xl border bg-card p-5 shadow-sm">
               <p className="text-xs font-semibold text-primary">Daily Insight</p>
               <p className="mt-2 text-xl font-semibold leading-snug">
-                You tend to reach for "Sugary" snacks on days when your stress level is above 4/5.
+                You tend to choose more junk food on days when your stress level is higher.
               </p>
               <p className="mt-5 border-t pt-3 text-sm text-muted-foreground">
                 Suggestion: Try a 5-minute breathing exercise when workload is "High".
@@ -153,7 +153,7 @@ export default function Home() {
             </div>
             <div>
               <p className="font-heading text-4xl">7 Days</p>
-              <p className="text-xs uppercase tracking-[0.14em] text-background/70">To First Insight</p>
+              <p className="text-xs uppercase tracking-[0.14em] text-background/70">To Early Signals</p>
             </div>
             <div>
               <p className="font-heading text-4xl">0</p>
@@ -243,9 +243,9 @@ export default function Home() {
             <p className="text-xs uppercase tracking-[0.18em] text-background/70">Ready to start</p>
             <div className="mt-3 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div>
-                <h2 className="font-heading text-3xl leading-tight md:text-4xl">See your patterns clearly in 7 days.</h2>
+                <h2 className="font-heading text-3xl leading-tight md:text-4xl">Start seeing early signals after 7 tracked days.</h2>
                 <p className="mt-2 max-w-2xl text-sm text-background/75 md:text-base">
-                  Start logging mood and meals today to generate your first statistically grounded insight this week.
+                  Log consistently to reveal early relationships first; stronger statistical evidence appears as the sample and variation grow.
                 </p>
               </div>
               <div className="flex gap-2">
