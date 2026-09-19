@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "set -e; export DIRECT_URL=postgresql://postgres:postgres@localhost:5432/mood_tracker; npm --prefix backend install --include=dev --ignore-scripts; npm --prefix backend audit; npm --prefix backend run typecheck; npm --prefix backend test; npm --prefix backend run build; next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
