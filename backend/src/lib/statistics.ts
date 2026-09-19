@@ -583,12 +583,16 @@ function standardizedLinearEstimate(
   return (estimate * predictorSd) / outcomeSd;
 }
 
-function applyFdrToLinearCoefficients(coefficients: LinearCoefficient[]): void {
+interface AdjustableCoefficient {
+  pValue: number;
+  adjustedPValue: number;
+}
+
+function applyFdrToCoefficients<T extends AdjustableCoefficient>(coefficients: T[]): void {
   const adjusted = benjaminiHochberg(coefficients.slice(1).map((coefficient) => coefficient.pValue));
-  for (let index = 1; index < coefficients.length; index += 1) {
-    const coefficient = coefficients[index];
-    if (coefficient) coefficient.adjustedPValue = adjusted[index - 1] ?? 1;
-  }
+  coefficients.slice(1).forEach((coefficient, index) => {
+    coefficient.adjustedPValue = adjusted[index] ?? 1;
+  });
   const intercept = coefficients[0];
   if (intercept) intercept.adjustedPValue = intercept.pValue;
 }
@@ -638,7 +642,7 @@ function buildLinearCoefficients(args: {
     };
   });
 
-  applyFdrToLinearCoefficients(coefficients);
+  applyFdrToCoefficients(coefficients);
   return coefficients;
 }
 
@@ -829,16 +833,6 @@ function logisticPseudoRSquared(
   return 1 - logLikelihood / nullLogLikelihood;
 }
 
-function applyFdrToLogisticCoefficients(coefficients: LogisticCoefficient[]): void {
-  const adjusted = benjaminiHochberg(coefficients.slice(1).map((coefficient) => coefficient.pValue));
-  for (let index = 1; index < coefficients.length; index += 1) {
-    const coefficient = coefficients[index];
-    if (coefficient) coefficient.adjustedPValue = adjusted[index - 1] ?? 1;
-  }
-  const intercept = coefficients[0];
-  if (intercept) intercept.adjustedPValue = intercept.pValue;
-}
-
 function buildLogisticCoefficients(args: {
   beta: number[];
   covariance: number[][];
@@ -872,7 +866,7 @@ function buildLogisticCoefficients(args: {
     };
   });
 
-  applyFdrToLogisticCoefficients(coefficients);
+  applyFdrToCoefficients(coefficients);
   return coefficients;
 }
 
