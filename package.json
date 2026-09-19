@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "export DIRECT_URL=postgresql://postgres:postgres@localhost:5432/mood_tracker DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mood_tracker JWT_SECRET=ci-only-secret-that-is-at-least-sixty-four-characters-long-1234567890 CORS_ORIGIN=http://localhost:3000 && npm --prefix backend install --ignore-scripts && npm --prefix backend run typecheck && npm --prefix backend test && npm --prefix backend run build && next build",
     "start": "next start",
     "lint": "eslint"
   },
