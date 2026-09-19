@@ -129,7 +129,7 @@ export function EatingForm({ existing, noLogsToday }: EatingFormProps) {
     if (!existing) return;
     form.reset({
       mealType: existing.mealType,
-      foodCategory: existing.foodCategory,
+      foodCategory: existing.foodCategory === "Sugary" ? "Junk" : existing.foodCategory,
       portionRating: existing.portionRating,
       hungerBefore: existing.hungerBefore,
       timeOfDay: existing.timeOfDay,
@@ -218,10 +218,10 @@ export function EatingForm({ existing, noLogsToday }: EatingFormProps) {
                     <FormLabel>Food Category</FormLabel>
                     <FormControl>
                       <PillGroup
-                        options={["Healthy", "Neutral", "Sugary", "Junk", "Skipped"] as const}
+                        options={["Healthy", "Junk", "Neutral", "Skipped"] as const}
                         value={field.value}
                         onChange={field.onChange}
-                        gridCols="grid-cols-2 md:grid-cols-5"
+                        gridCols="grid-cols-2 md:grid-cols-4"
                       />
                     </FormControl>
                     <FormMessage />
