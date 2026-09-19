@@ -428,7 +428,7 @@ function evaluatePattern(
     pValue: round(pValue, 6),
     evidence: "emerging",
     direction,
-    matchingDays: a,
+    matchingDays: direction === "positive" ? a : b,
     triggerDays,
     totalDays: eligible.length,
   };
@@ -453,7 +453,7 @@ export function analyzeBehavioralInsights(
     .map((pattern) => evaluatePattern(pattern, days, dateRangeLabel))
     .filter((value): value is BehavioralInsight => value !== null);
 
-  const correctionFactor = Math.max(1, evaluated.length);
+  const correctionFactor = patterns.length;
   const candidates = evaluated
     .map((insight) => {
       const adjustedPValue = Math.min(1, insight.pValue * correctionFactor);
