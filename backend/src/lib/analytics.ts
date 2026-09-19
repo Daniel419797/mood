@@ -1,3 +1,5 @@
+import { rateDifferenceConfidenceInterval, type ConfidenceInterval } from "./statistics.js";
+
 export type InsightEvidence = "strong" | "emerging";
 export type InsightDirection = "positive" | "negative";
 
@@ -30,6 +32,7 @@ export interface BehavioralInsight {
   baselineOutcomeRate: number;
   lift: number;
   pValue: number;
+  effectConfidenceInterval: ConfidenceInterval;
   evidence: InsightEvidence;
   direction: InsightDirection;
   matchingDays: number;
@@ -400,6 +403,7 @@ function evaluatePattern(
   const direction: InsightDirection = lift >= 0 ? "positive" : "negative";
   const patternConsistency = direction === "positive" ? triggerOutcomeRate : 1 - triggerOutcomeRate;
   const pValue = fisherExactTwoSided(a, b, c, d);
+  const effectConfidenceInterval = rateDifferenceConfidenceInterval(a, triggerDays, c, comparisonDays);
 
   return {
     correlationId: spec.id,
@@ -426,6 +430,7 @@ function evaluatePattern(
     baselineOutcomeRate: round(baselineOutcomeRate),
     lift: round(lift),
     pValue: round(pValue, 6),
+    effectConfidenceInterval,
     evidence: "emerging",
     direction,
     matchingDays: direction === "positive" ? a : b,
