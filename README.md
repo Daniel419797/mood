@@ -490,7 +490,7 @@ Categories exposed to users are:
 
 Older records created with the retired `Sugary` category are preserved for backward compatibility but are normalized to `Junk` in the UI and analytics. New writes cannot create `Sugary` records.
 
-### Meals by Stress Level
+### Meal Categories by Stress Level
 
 This chart is descriptive rather than inferential.
 
@@ -499,7 +499,8 @@ For each day containing both mood and eating data:
 1. the day's mood entries are used to calculate average stress;
 2. average stress is bucketed from 1 to 5;
 3. meals from that same day are counted by food category;
-4. the dashboard renders those counts as stacked bars.
+4. the dashboard renders a fixed 1–5 stress scale so the meaning of the x-axis stays consistent;
+5. the stacked bars show the number of Healthy, Junk, Neutral, and Skipped entries at each stress level.
 
 Inferential stress/food relationships are calculated separately by the behavioural analytics engine.
 
