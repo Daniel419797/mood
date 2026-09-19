@@ -15,7 +15,9 @@ import { analyticsQuerySchema } from "../validation.js";
 const router = Router();
 router.use(requireAuth);
 
-function rangeStart(range: "7d" | "30d" | "all"): Date | undefined {
+type AnalyticsRange = "7d" | "30d" | "all";
+
+function rangeStart(range: AnalyticsRange): Date | undefined {
   if (range === "all") return undefined;
   const date = new Date();
   date.setUTCHours(0, 0, 0, 0);
@@ -23,13 +25,13 @@ function rangeStart(range: "7d" | "30d" | "all"): Date | undefined {
   return date;
 }
 
-function rangeLabel(range: "7d" | "30d" | "all"): string {
+function rangeLabel(range: AnalyticsRange): string {
   if (range === "7d") return "Last 7 days";
   if (range === "30d") return "Last 30 days";
   return "All tracked data";
 }
 
-async function loadAnalyticsData(userId: string, range: "7d" | "30d" | "all") {
+async function loadAnalyticsData(userId: string, range: AnalyticsRange) {
   const start = rangeStart(range);
   const where = {
     userId,
