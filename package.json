@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "export DIRECT_URL=postgresql://postgres:postgres@localhost:5432/mood_tracker DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mood_tracker JWT_SECRET=ci-only-secret-that-is-at-least-sixty-four-characters-long-1234567890 CORS_ORIGIN=http://localhost:3000; npm --prefix backend install --ignore-scripts > public/backend-verification.txt 2>&1; { echo TYPECHECK; npm --prefix backend run typecheck; echo TYPECHECK_EXIT:$?; echo TESTS; npm --prefix backend test; echo TESTS_EXIT:$?; echo BACKEND_BUILD; npm --prefix backend run build; echo BACKEND_BUILD_EXIT:$?; } >> public/backend-verification.txt 2>&1; next build",
+    "build": "export DIRECT_URL=postgresql://postgres:postgres@localhost:5432/mood_tracker; npm --prefix backend install --include=dev --ignore-scripts > public/backend-verification.txt 2>&1; { echo TYPECHECK; npm --prefix backend run typecheck; echo TYPECHECK_EXIT:$?; echo TESTS; npm --prefix backend test; echo TESTS_EXIT:$?; echo BACKEND_BUILD; npm --prefix backend run build; echo BACKEND_BUILD_EXIT:$?; } >> public/backend-verification.txt 2>&1; next build",
     "start": "next start",
     "lint": "eslint"
   },
