@@ -182,7 +182,7 @@ export default function DashboardPage() {
                     type="monotone"
                     dataKey="avgStressLevel"
                     name="Stress"
-                    stroke="#ffffff"
+                    stroke="hsl(var(--muted-foreground))"
                     dot={false}
                     strokeWidth={2.2}
                     strokeDasharray="4 2"
