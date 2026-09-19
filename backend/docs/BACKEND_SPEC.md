@@ -32,9 +32,20 @@ Every mood/eating read, update, delete, dashboard query, and insight query is sc
 
 Analytics are generated server-side from the user's records in the requested 7d, 30d, or all range.
 
-The engine groups records into daily aggregates, requires at least seven tracked days before the dedicated insights view is unlocked, evaluates multiple mood/stress/sleep/energy/workload/eating relationships, requires both trigger days and comparison days, calculates trigger/comparison rates, signed lift, phi association strength, and a two-sided Fisher exact test, and applies a conservative multiple-comparison adjustment before assigning strong evidence.
+The engine groups records into daily aggregates and requires at least seven tracked days before the dedicated insights view is unlocked.
+
+The analytics contract includes:
+
+- categorical trigger/control comparisons with rate differences, 95% confidence intervals, phi association strength, Fisher exact tests, and multiplicity correction;
+- continuous Pearson and Spearman correlations with Fisher-z 95% confidence intervals and Benjamini-Hochberg false-discovery-rate adjustment;
+- multivariable linear regression with HC3 heteroskedasticity-robust standard errors, 95% coefficient intervals, standardized coefficients, FDR-adjusted p-values, fit metrics, and VIF diagnostics;
+- multivariable logistic regression with adjusted odds ratios, 95% intervals, FDR-adjusted p-values, convergence diagnostics, pseudo-R², and VIF diagnostics;
+- one-day lagged analysis on consecutive calendar-day pairs with confidence intervals and FDR control;
+- an inference-quality report describing data coverage, model warnings, multiplicity handling, uncertainty estimation, and methodological limitations.
 
 Below-threshold relationships can still be returned as emerging patterns instead of being treated as nonexistent. The profile slider controls pattern consistency only; it is deliberately not described as statistical significance or confidence.
+
+The analysis classification can become research-oriented when the dataset is sufficiently complete and stable, but the API always reports clinicalValidated=false. Clinical validity requires independent validation and prospective study outside the software itself.
 
 Analytics are observational and must not be presented as causal findings.
 
