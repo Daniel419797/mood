@@ -184,7 +184,7 @@ const patterns: PatternSpec[] = [
     outcomeDescription: "high stress",
     positiveHeadline: "Short-sleep days align with higher stress",
     negativeHeadline: "Short-sleep days align with less high stress",
-    positiveSuggestion: "Track whether improving sleep duration changes next-day stress levels.",
+    positiveSuggestion: "Track whether improving sleep duration changes stress on short-sleep days.",
     negativeSuggestion: "Your current logs do not show higher stress on short-sleep days. Keep tracking as the sample grows.",
     eligible: (day) => day.moodCount > 0,
     trigger: (day) => avgSleep(day) < 6,
