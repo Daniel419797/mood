@@ -32,16 +32,25 @@ function evidenceVariant(
   return "outline";
 }
 
-function CorrelationCard({ result }: Readonly<{ result: ContinuousCorrelationDTO }>) {
+function CorrelationCard({
+  result,
+  title,
+  subtitle,
+}: Readonly<{
+  result: ContinuousCorrelationDTO;
+  title?: string;
+  subtitle?: string;
+}>) {
+  const heading = title ?? result.xLabel + " ↔ " + result.yLabel;
+  const detail = subtitle ?? result.n + " paired days";
+
   return (
     <Card>
       <CardContent className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-semibold">
-              {result.xLabel} ↔ {result.yLabel}
-            </p>
-            <p className="text-xs text-muted-foreground">{result.n} paired days</p>
+            <p className="font-semibold">{heading}</p>
+            <p className="text-xs text-muted-foreground">{detail}</p>
           </div>
           <Badge variant={evidenceVariant(result.evidence)}>{result.evidence}</Badge>
         </div>
@@ -147,34 +156,23 @@ function LogisticModelCard({ report }: Readonly<{ report: LogisticModelReportDTO
           </Badge>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[650px] text-left text-sm">
-            <thead className="border-b text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="py-2 pr-4 font-medium">Predictor</th>
-                <th className="py-2 pr-4 font-medium">Odds ratio</th>
-                <th className="py-2 pr-4 font-medium">95% OR CI</th>
-                <th className="py-2 pr-4 font-medium">FDR p</th>
-                <th className="py-2 font-medium">VIF</th>
-              </tr>
-            </thead>
-            <tbody>
-              {predictors.map((coefficient) => (
-                <tr key={coefficient.name} className="border-b last:border-0">
-                  <td className="py-3 pr-4 font-medium">{coefficient.name}</td>
-                  <td className="py-3 pr-4">{coefficient.oddsRatio.toFixed(2)}</td>
-                  <td className="py-3 pr-4">
-                    {coefficient.oddsRatioConfidenceInterval.low.toFixed(2)} to{" "}
-                    {coefficient.oddsRatioConfidenceInterval.high.toFixed(2)}
-                  </td>
-                  <td className="py-3 pr-4">{probability(coefficient.adjustedPValue)}</td>
-                  <td className="py-3">
-                    {coefficient.vif === null ? "—" : coefficient.vif.toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid gap-2 md:grid-cols-2">
+          {predictors.map((coefficient) => (
+            <div key={coefficient.name} className="rounded-lg border p-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-medium">{coefficient.name}</p>
+                <Badge variant="outline">OR {coefficient.oddsRatio.toFixed(2)}</Badge>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                95% OR CI {coefficient.oddsRatioConfidenceInterval.low.toFixed(2)} to{" "}
+                {coefficient.oddsRatioConfidenceInterval.high.toFixed(2)}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                FDR p={probability(coefficient.adjustedPValue)} · VIF{" "}
+                {coefficient.vif === null ? "—" : coefficient.vif.toFixed(2)}
+              </p>
+            </div>
+          ))}
         </div>
 
         {report.model.warnings.length > 0 && (
@@ -316,32 +314,12 @@ export function AdvancedAnalyticsPanel({ data }: Readonly<{ data: AdvancedAnalyt
         {meaningfulLagged.length > 0 ? (
           <div className="grid gap-3 lg:grid-cols-2">
             {meaningfulLagged.map((result) => (
-              <Card key={result.id}>
-                <CardContent className="space-y-3 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">{result.directionLabel}</p>
-                      <p className="text-xs text-muted-foreground">{result.n} consecutive-day pairs</p>
-                    </div>
-                    <Badge variant={evidenceVariant(result.evidence)}>{result.evidence}</Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="rounded-lg border p-3">
-                      <p className="text-xs text-muted-foreground">Pearson r</p>
-                      <p className="font-semibold">{signed(result.pearson)}</p>
-                    </div>
-                    <div className="rounded-lg border p-3">
-                      <p className="text-xs text-muted-foreground">Spearman ρ</p>
-                      <p className="font-semibold">{signed(result.spearman)}</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    95% CI {signed(result.confidenceInterval.low)} to{" "}
-                    {signed(result.confidenceInterval.high)} · FDR-adjusted p=
-                    {probability(result.adjustedPValue)}
-                  </p>
-                </CardContent>
-              </Card>
+              <CorrelationCard
+                key={result.id}
+                result={result}
+                title={result.directionLabel}
+                subtitle={result.n + " consecutive-day pairs"}
+              />
             ))}
           </div>
         ) : (
