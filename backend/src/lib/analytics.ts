@@ -400,14 +400,6 @@ function evaluatePattern(
   const direction: InsightDirection = lift >= 0 ? "positive" : "negative";
   const patternConsistency = direction === "positive" ? triggerOutcomeRate : 1 - triggerOutcomeRate;
   const pValue = fisherExactTwoSided(a, b, c, d);
-  const evidence: InsightEvidence =
-    eligible.length >= 14 &&
-    triggerDays >= 5 &&
-    comparisonDays >= 5 &&
-    pValue <= 0.05 &&
-    strengthScore >= 0.2
-      ? "strong"
-      : "emerging";
 
   return {
     correlationId: spec.id,
@@ -434,7 +426,7 @@ function evaluatePattern(
     baselineOutcomeRate: round(baselineOutcomeRate),
     lift: round(lift),
     pValue: round(pValue, 6),
-    evidence,
+    evidence: "emerging",
     direction,
     matchingDays: a,
     triggerDays,
@@ -457,9 +449,30 @@ export function analyzeBehavioralInsights(
 ): { insights: BehavioralInsight[]; emergingInsights: BehavioralInsight[]; analyzedDays: number } {
   const days = buildDailyAggregates(moods, eating);
   const threshold = patternThresholdPct / 100;
-  const candidates = patterns
+  const evaluated = patterns
     .map((pattern) => evaluatePattern(pattern, days, dateRangeLabel))
-    .filter((value): value is BehavioralInsight => value !== null)
+    .filter((value): value is BehavioralInsight => value !== null);
+
+  const correctionFactor = Math.max(1, evaluated.length);
+  const candidates = evaluated
+    .map((insight) => {
+      const adjustedPValue = Math.min(1, insight.pValue * correctionFactor);
+      const comparisonDays = insight.totalDays - insight.triggerDays;
+      const evidence: InsightEvidence =
+        insight.totalDays >= 14 &&
+        insight.triggerDays >= 5 &&
+        comparisonDays >= 5 &&
+        adjustedPValue <= 0.05 &&
+        insight.strengthScore >= 0.2
+          ? "strong"
+          : "emerging";
+
+      return {
+        ...insight,
+        pValue: round(adjustedPValue, 6),
+        evidence,
+      };
+    })
     .sort(rankInsights);
 
   return {
