@@ -99,6 +99,118 @@ export type UpdateEatingLogRequestDTO = Partial<CreateEatingLogRequestDTO>;
 export type InsightEvidence = "strong" | "emerging";
 export type InsightDirection = "positive" | "negative";
 
+export interface ConfidenceIntervalDTO {
+  low: number;
+  high: number;
+  level: number;
+}
+
+export interface ContinuousCorrelationDTO {
+  id: string;
+  x: string;
+  xLabel: string;
+  y: string;
+  yLabel: string;
+  n: number;
+  pearson: number;
+  spearman: number;
+  confidenceInterval: ConfidenceIntervalDTO;
+  pValue: number;
+  adjustedPValue: number;
+  evidence: "strong" | "emerging" | "weak";
+}
+
+export interface LaggedEffectDTO extends ContinuousCorrelationDTO {
+  lagDays: number;
+  directionLabel: string;
+}
+
+export interface LinearCoefficientDTO {
+  name: string;
+  estimate: number;
+  standardizedEstimate: number | null;
+  standardError: number;
+  pValue: number;
+  adjustedPValue: number;
+  confidenceInterval: ConfidenceIntervalDTO;
+  vif: number | null;
+}
+
+export interface LinearModelDTO {
+  outcome: string;
+  n: number;
+  predictorCount: number;
+  rSquared: number;
+  adjustedRSquared: number;
+  rmse: number;
+  residualDf: number;
+  coefficients: LinearCoefficientDTO[];
+  warnings: string[];
+}
+
+export interface LogisticCoefficientDTO {
+  name: string;
+  estimate: number;
+  standardError: number;
+  pValue: number;
+  adjustedPValue: number;
+  oddsRatio: number;
+  confidenceInterval: ConfidenceIntervalDTO;
+  oddsRatioConfidenceInterval: ConfidenceIntervalDTO;
+  vif: number | null;
+}
+
+export interface LogisticModelDTO {
+  outcome: string;
+  n: number;
+  eventCount: number;
+  predictorCount: number;
+  converged: boolean;
+  iterations: number;
+  pseudoRSquared: number;
+  coefficients: LogisticCoefficientDTO[];
+  warnings: string[];
+}
+
+export interface RegressionModelReportDTO {
+  id: string;
+  title: string;
+  description: string;
+  model: LinearModelDTO;
+}
+
+export interface LogisticModelReportDTO {
+  id: string;
+  title: string;
+  description: string;
+  model: LogisticModelDTO;
+}
+
+export interface InferenceQualityDTO {
+  analysisClass: "limited" | "exploratory" | "research-oriented";
+  clinicalValidated: false;
+  trackedDays: number;
+  completeMoodDays: number;
+  pairedMoodEatingDays: number;
+  continuousTests: number;
+  laggedTests: number;
+  linearModels: number;
+  logisticModels: number;
+  multiplicityMethod: string;
+  regressionUncertaintyMethod: string;
+  confidenceLevel: number;
+  warnings: string[];
+  limitations: string[];
+}
+
+export interface AdvancedAnalyticsDTO {
+  continuousCorrelations: ContinuousCorrelationDTO[];
+  laggedEffects: LaggedEffectDTO[];
+  linearModels: RegressionModelReportDTO[];
+  logisticModels: LogisticModelReportDTO[];
+  quality: InferenceQualityDTO;
+}
+
 export interface InsightDTO {
   correlationId: string;
   headline: string;
@@ -111,6 +223,7 @@ export interface InsightDTO {
   baselineOutcomeRate: number;
   lift: number;
   pValue: number;
+  effectConfidenceInterval: ConfidenceIntervalDTO;
   evidence: InsightEvidence;
   direction: InsightDirection;
   matchingDays: number;
@@ -124,6 +237,7 @@ export interface InsightsResponseDTO {
         insufficientData: false;
         insights: InsightDTO[];
         emergingInsights: InsightDTO[];
+        advanced: AdvancedAnalyticsDTO;
         lastUpdated: string;
         patternThreshold: number;
         analyzedDays: number;
