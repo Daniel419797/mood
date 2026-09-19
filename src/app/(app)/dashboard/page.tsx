@@ -99,7 +99,7 @@ export default function DashboardPage() {
     );
   }
 
-  const { summary, moodTrend, eatingFrequency, stressFoodCorrelation, topInsights } = data;
+  const { summary, moodTrend, eatingFrequency, stressFoodCorrelation, topInsights, earlySignals } = data;
 
   const moodChartData = moodTrend.map((p) => ({
     ...p,
@@ -212,9 +212,26 @@ export default function DashboardPage() {
                   <p className="mt-4 border-t pt-3 text-sm">{insight.suggestion}</p>
                 </div>
               ))
+            ) : summary.daysTracked >= 7 && earlySignals.length > 0 ? (
+              earlySignals.slice(0, 2).map((signal) => (
+                <div key={signal.id} className="rounded-xl border bg-card p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold">{signal.xLabel} ↔ {signal.yLabel}</p>
+                    <Badge variant="outline">{signal.evidence === "weak" ? "Early signal" : signal.evidence}</Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Pearson r={signal.pearson.toFixed(2)} · Spearman ρ={signal.spearman.toFixed(2)}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {signal.n} paired days · 95% CI {signal.confidenceInterval.low.toFixed(2)} to {signal.confidenceInterval.high.toFixed(2)} · preliminary, not causal
+                  </p>
+                </div>
+              ))
             ) : (
               <div className="rounded-xl border p-6 text-sm text-muted-foreground">
-                Patterns will appear as comparable days accumulate.
+                {summary.daysTracked < 7
+                  ? `Early signals unlock after 7 distinct tracked days. You have ${summary.daysTracked}/7.`
+                  : "Analysis is running, but the recorded values do not vary enough to estimate a relationship yet."}
               </div>
             )}
             <div className="text-right">
@@ -278,7 +295,9 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="flex items-center gap-2 p-5 text-sm text-muted-foreground">
             <Lightbulb className="h-4 w-4" />
-            Keep logging daily to make pattern estimates more reliable.
+            {summary.daysTracked < 7
+              ? "Track on 7 distinct days to unlock early behavioral signals."
+              : "Early signals are preliminary. Keep logging to strengthen estimates and unlock adjusted models."}
           </CardContent>
         </Card>
       )}
