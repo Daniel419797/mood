@@ -167,12 +167,12 @@ function logGamma(value: number): number {
   );
 }
 
-function betaContinuedFraction(x: number, a: number, b: number): number {
+function betaContinuedFraction(x: number, alpha: number, beta: number): number {
   const maxIterations = 200;
   const fpMin = 1e-30;
-  let qab = a + b;
-  let qap = a + 1;
-  let qam = a - 1;
+  const qab = alpha + beta;
+  const qap = alpha + 1;
+  const qam = alpha - 1;
   let c = 1;
   let d = 1 - (qab * x) / qap;
   if (Math.abs(d) < fpMin) d = fpMin;
@@ -181,7 +181,7 @@ function betaContinuedFraction(x: number, a: number, b: number): number {
 
   for (let m = 1; m <= maxIterations; m += 1) {
     const m2 = 2 * m;
-    let aa = (m * (b - m) * x) / ((qam + m2) * (a + m2));
+    let aa = (m * (beta - m) * x) / ((qam + m2) * (alpha + m2));
     d = 1 + aa * d;
     if (Math.abs(d) < fpMin) d = fpMin;
     c = 1 + aa / c;
@@ -189,7 +189,7 @@ function betaContinuedFraction(x: number, a: number, b: number): number {
     d = 1 / d;
     h *= d * c;
 
-    aa = (-(a + m) * (qab + m) * x) / ((a + m2) * (qap + m2));
+    aa = (-(alpha + m) * (qab + m) * x) / ((alpha + m2) * (qap + m2));
     d = 1 + aa * d;
     if (Math.abs(d) < fpMin) d = fpMin;
     c = 1 + aa / c;
@@ -337,8 +337,8 @@ export function rateDifferenceConfidenceInterval(
   const ci0 = wilsonInterval(comparisonSuccesses, comparisonTotal);
   const difference = p1 - p0;
 
-  const lower = difference - Math.sqrt((p1 - ci1.low) ** 2 + (ci0.high - p0) ** 2);
-  const upper = difference + Math.sqrt((ci1.high - p1) ** 2 + (p0 - ci0.low) ** 2);
+  const lower = difference - Math.hypot(p1 - ci1.low, ci0.high - p0);
+  const upper = difference + Math.hypot(ci1.high - p1, p0 - ci0.low);
 
   return {
     low: roundTo(clamp(lower, -1, 1)),
