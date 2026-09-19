@@ -32,7 +32,7 @@ function evidenceVariant(
   return "outline";
 }
 
-function CorrelationCard({ result }: { result: ContinuousCorrelationDTO }) {
+function CorrelationCard({ result }: Readonly<{ result: ContinuousCorrelationDTO }>) {
   return (
     <Card>
       <CardContent className="space-y-3 p-4">
@@ -66,7 +66,7 @@ function CorrelationCard({ result }: { result: ContinuousCorrelationDTO }) {
   );
 }
 
-function LinearModelCard({ report }: { report: RegressionModelReportDTO }) {
+function LinearModelCard({ report }: Readonly<{ report: RegressionModelReportDTO }>) {
   const predictors = report.model.coefficients.filter((coefficient) => coefficient.name !== "Intercept");
 
   return (
@@ -128,7 +128,7 @@ function LinearModelCard({ report }: { report: RegressionModelReportDTO }) {
   );
 }
 
-function LogisticModelCard({ report }: { report: LogisticModelReportDTO }) {
+function LogisticModelCard({ report }: Readonly<{ report: LogisticModelReportDTO }>) {
   const predictors = report.model.coefficients.filter((coefficient) => coefficient.name !== "Intercept");
 
   return (
@@ -187,7 +187,7 @@ function LogisticModelCard({ report }: { report: LogisticModelReportDTO }) {
   );
 }
 
-export function AdvancedAnalyticsPanel({ data }: { data: AdvancedAnalyticsDTO }) {
+export function AdvancedAnalyticsPanel({ data }: Readonly<{ data: AdvancedAnalyticsDTO }>) {
   const meaningfulContinuous = data.continuousCorrelations.filter(
     (result) => result.evidence !== "weak",
   );
