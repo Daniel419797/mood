@@ -257,7 +257,7 @@ function buildDailyDataset(
 
 function numericValue(row: DailyObservation, key: VariableKey): number | null {
   const value = row[key];
-  return Number.isFinite(value) ? value : null;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function classifyCorrelation(estimate: number, adjustedPValue: number, n: number): Evidence {
