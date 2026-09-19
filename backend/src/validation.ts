@@ -52,7 +52,7 @@ export const updateMoodSchema = createMoodSchema
   .refine((data) => Object.keys(data).length > 0, { message: "At least one field must be supplied." });
 
 export const mealTypeSchema = z.enum(["Breakfast", "Lunch", "Dinner", "Snack", "Other"]);
-export const foodCategorySchema = z.enum(["Healthy", "Neutral", "Sugary", "Junk", "Skipped"]);
+export const foodCategorySchema = z.enum(["Healthy", "Junk", "Neutral", "Skipped"]);
 export const portionRatingSchema = z.enum(["Small", "Normal", "Large", "Binge"]);
 export const timeOfDaySchema = z.enum(["Morning", "Afternoon", "Evening", "Night"]);
 
