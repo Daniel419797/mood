@@ -99,7 +99,7 @@ export default function DashboardPage() {
     );
   }
 
-  const { summary, moodTrend, eatingFrequency, stressFoodCorrelation, topInsights, earlySignals } = data;
+  const { summary, moodTrend, eatingFrequency, stressFoodCorrelation, topInsights, earlySignals = [] } = data;
 
   const moodChartData = moodTrend.map((p) => ({
     ...p,
