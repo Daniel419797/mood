@@ -20,11 +20,23 @@ describe("advanced behavioral analytics", () => {
       const priorSleep = sleepByDay[day - 2] ?? sleep;
       const workload = day % 4 === 0 ? "High" : day % 3 === 0 ? "Low" : "Medium";
       const workloadScore = workload === "High" ? 3 : workload === "Low" ? 1 : 2;
-      const stress = Math.max(1, Math.min(5, 5.2 - sleep * 0.35 + workloadScore * 0.45));
-      const energy = Math.max(1, Math.min(5, 1.3 + sleep * 0.45 - stress * 0.18));
+      const stressNoise = (((day * 11) % 9) - 4) * 0.04;
+      const energyNoise = (((day * 13) % 11) - 5) * 0.03;
+      const moodNoise = (((day * 17) % 13) - 6) * 0.025;
+      const stress = Math.max(
+        1,
+        Math.min(5, 5.2 - sleep * 0.35 + workloadScore * 0.45 + stressNoise),
+      );
+      const energy = Math.max(
+        1,
+        Math.min(5, 1.3 + sleep * 0.45 - stress * 0.18 + energyNoise),
+      );
       const mood = Math.max(
         1,
-        Math.min(5, 0.7 + priorSleep * 0.5 - stress * 0.22 - workloadScore * 0.08),
+        Math.min(
+          5,
+          0.7 + priorSleep * 0.5 - stress * 0.22 - workloadScore * 0.08 + moodNoise,
+        ),
       );
 
       moods.push({
@@ -37,7 +49,8 @@ describe("advanced behavioral analytics", () => {
         loggedAt: loggedAt(day),
       });
 
-      const unhealthy = stress >= 3.5 || day % 7 === 0;
+      const foodChoiceNoise = ((day * 5) % 7) * 0.22;
+      const unhealthy = stress + foodChoiceNoise >= 3.75;
       eating.push({
         foodCategory: unhealthy ? "Junk" : "Healthy",
         portionRating: stress >= 4 ? "Large" : "Normal",
