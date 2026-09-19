@@ -20,6 +20,16 @@ export interface AnalyticsEatingLog {
   loggedAt: Date | string;
 }
 
+export type AnalyticsFoodCategory = "Healthy" | "Junk" | "Neutral" | "Skipped";
+
+export function normalizeFoodCategory(category: string): AnalyticsFoodCategory {
+  if (category === "Sugary") return "Junk";
+  if (category === "Healthy" || category === "Junk" || category === "Neutral" || category === "Skipped") {
+    return category;
+  }
+  return "Neutral";
+}
+
 export interface BehavioralInsight {
   correlationId: string;
   headline: string;
@@ -49,7 +59,7 @@ interface DailyAggregate {
   sleepSum: number;
   highWorkload: boolean;
   eatingCount: number;
-  sugaryOrJunk: boolean;
+  junkFood: boolean;
   skippedMeal: boolean;
   largeOrBinge: boolean;
   nightEating: boolean;
@@ -99,7 +109,7 @@ function emptyDay(date: string): DailyAggregate {
     sleepSum: 0,
     highWorkload: false,
     eatingCount: 0,
-    sugaryOrJunk: false,
+    junkFood: false,
     skippedMeal: false,
     largeOrBinge: false,
     nightEating: false,
@@ -129,7 +139,7 @@ function buildDailyAggregates(
     const date = isoDay(meal.loggedAt);
     const day = byDay.get(date) ?? emptyDay(date);
     day.eatingCount += 1;
-    day.sugaryOrJunk ||= meal.foodCategory === "Sugary" || meal.foodCategory === "Junk";
+    day.junkFood ||= normalizeFoodCategory(meal.foodCategory) === "Junk";
     day.skippedMeal ||= meal.foodCategory === "Skipped";
     day.largeOrBinge ||= meal.portionRating === "Large" || meal.portionRating === "Binge";
     day.nightEating ||= meal.timeOfDay === "Night";
@@ -158,16 +168,16 @@ function avgSleep(day: DailyAggregate): number {
 
 const patterns: PatternSpec[] = [
   {
-    id: "stress-sugary",
+    id: "stress-junk",
     triggerDescription: "high-stress",
-    outcomeDescription: "sugary/junk food",
-    positiveHeadline: "Higher-stress days align with more sugary/junk choices",
-    negativeHeadline: "Higher-stress days align with fewer sugary/junk choices",
+    outcomeDescription: "junk food",
+    positiveHeadline: "Higher-stress days align with more junk-food choices",
+    negativeHeadline: "Higher-stress days align with fewer junk-food choices",
     positiveSuggestion: "Plan an easy alternative snack or meal for high-stress periods and see whether the pattern changes.",
-    negativeSuggestion: "Your current logs suggest high stress is not driving sugary/junk choices. Keep logging to confirm the pattern.",
+    negativeSuggestion: "Your current logs suggest high stress is not driving junk-food choices. Keep logging to confirm the pattern.",
     eligible: (day) => day.moodCount > 0 && day.eatingCount > 0,
     trigger: (day) => avgStress(day) >= 4,
-    outcome: (day) => day.sugaryOrJunk,
+    outcome: (day) => day.junkFood,
   },
   {
     id: "sleep-mood",
@@ -256,26 +266,26 @@ const patterns: PatternSpec[] = [
   {
     id: "energy-food",
     triggerDescription: "low-energy",
-    outcomeDescription: "sugary/junk food",
-    positiveHeadline: "Low-energy days align with more sugary/junk choices",
-    negativeHeadline: "Low-energy days align with fewer sugary/junk choices",
+    outcomeDescription: "junk food",
+    positiveHeadline: "Low-energy days align with more junk-food choices",
+    negativeHeadline: "Low-energy days align with fewer junk-food choices",
     positiveSuggestion: "Prepare a convenient balanced option for low-energy periods and compare future logs.",
-    negativeSuggestion: "Your current logs show fewer sugary/junk choices on low-energy days. Continue tracking to confirm it.",
+    negativeSuggestion: "Your current logs show fewer junk-food choices on low-energy days. Continue tracking to confirm it.",
     eligible: (day) => day.moodCount > 0 && day.eatingCount > 0,
     trigger: (day) => avgEnergy(day) <= 2.5,
-    outcome: (day) => day.sugaryOrJunk,
+    outcome: (day) => day.junkFood,
   },
   {
     id: "mood-food",
     triggerDescription: "low-mood",
-    outcomeDescription: "sugary/junk food",
-    positiveHeadline: "Lower-mood days align with more sugary/junk choices",
-    negativeHeadline: "Lower-mood days align with fewer sugary/junk choices",
+    outcomeDescription: "junk food",
+    positiveHeadline: "Lower-mood days align with more junk-food choices",
+    negativeHeadline: "Lower-mood days align with fewer junk-food choices",
     positiveSuggestion: "Keep an easy meal option available on low-mood days and compare whether food choices change.",
-    negativeSuggestion: "Your current logs show fewer sugary/junk choices on low-mood days. Continue logging to verify the relationship.",
+    negativeSuggestion: "Your current logs show fewer junk-food choices on low-mood days. Continue logging to verify the relationship.",
     eligible: (day) => day.moodCount > 0 && day.eatingCount > 0,
     trigger: (day) => avgMood(day) <= 2.5,
-    outcome: (day) => day.sugaryOrJunk,
+    outcome: (day) => day.junkFood,
   },
   {
     id: "stress-skip",
@@ -302,16 +312,16 @@ const patterns: PatternSpec[] = [
     outcome: (day) => day.largeOrBinge,
   },
   {
-    id: "night-sugary",
+    id: "night-junk",
     triggerDescription: "night-eating",
-    outcomeDescription: "sugary/junk food",
-    positiveHeadline: "Night-eating days align with more sugary/junk choices",
-    negativeHeadline: "Night-eating days align with fewer sugary/junk choices",
+    outcomeDescription: "junk food",
+    positiveHeadline: "Night-eating days align with more junk-food choices",
+    negativeHeadline: "Night-eating days align with fewer junk-food choices",
     positiveSuggestion: "Compare nights with a planned evening meal against unplanned late eating.",
     negativeSuggestion: "Sugary/junk choices are currently less common on night-eating days. Keep logging to test whether that remains true.",
     eligible: (day) => day.eatingCount > 0,
     trigger: (day) => day.nightEating,
-    outcome: (day) => day.sugaryOrJunk,
+    outcome: (day) => day.junkFood,
   },
   {
     id: "healthy-mood",
@@ -322,7 +332,7 @@ const patterns: PatternSpec[] = [
     positiveSuggestion: "Keep tracking meal quality and mood together to see whether this positive pattern holds.",
     negativeSuggestion: "High mood is currently less common on days with healthy meals. More logs are needed before interpreting that pattern.",
     eligible: (day) => day.moodCount > 0 && day.eatingCount > 0,
-    trigger: (day) => day.healthyMeal && !day.sugaryOrJunk,
+    trigger: (day) => day.healthyMeal && !day.junkFood,
     outcome: (day) => avgMood(day) >= 4,
   },
 ];
@@ -515,11 +525,17 @@ export function buildMoodTrend(moods: AnalyticsMoodLog[]) {
 }
 
 export function buildEatingFrequency(eating: AnalyticsEatingLog[]) {
-  const counts = new Map<string, number>();
+  const order: AnalyticsFoodCategory[] = ["Healthy", "Junk", "Neutral", "Skipped"];
+  const counts = new Map<AnalyticsFoodCategory, number>();
+
   for (const meal of eating) {
-    counts.set(meal.foodCategory, (counts.get(meal.foodCategory) ?? 0) + 1);
+    const category = normalizeFoodCategory(meal.foodCategory);
+    counts.set(category, (counts.get(category) ?? 0) + 1);
   }
-  return Array.from(counts.entries()).map(([foodCategory, count]) => ({ foodCategory, count }));
+
+  return order
+    .filter((foodCategory) => (counts.get(foodCategory) ?? 0) > 0)
+    .map((foodCategory) => ({ foodCategory, count: counts.get(foodCategory) ?? 0 }));
 }
 
 export function buildStressFoodCorrelation(moods: AnalyticsMoodLog[], eating: AnalyticsEatingLog[]) {
@@ -531,7 +547,7 @@ export function buildStressFoodCorrelation(moods: AnalyticsMoodLog[], eating: An
     byDayMood.set(day, values);
   }
 
-  const empty = { Healthy: 0, Neutral: 0, Sugary: 0, Junk: 0, Skipped: 0 };
+  const empty = { Healthy: 0, Junk: 0, Neutral: 0, Skipped: 0 };
   const buckets = new Map<string, typeof empty>();
 
   for (const meal of eating) {
@@ -542,8 +558,8 @@ export function buildStressFoodCorrelation(moods: AnalyticsMoodLog[], eating: An
     const average = stressValues.reduce((sum, value) => sum + value, 0) / stressValues.length;
     const stressLevel = String(Math.max(1, Math.min(5, Math.round(average))));
     const bucket = buckets.get(stressLevel) ?? { ...empty };
-    const category = meal.foodCategory as keyof typeof empty;
-    if (category in bucket) bucket[category] += 1;
+    const category = normalizeFoodCategory(meal.foodCategory);
+    bucket[category] += 1;
     buckets.set(stressLevel, bucket);
   }
 
