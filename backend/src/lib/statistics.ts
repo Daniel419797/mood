@@ -371,47 +371,77 @@ function multiplyMatrixVector(matrix: number[][], vector: number[]): number[] {
   );
 }
 
-function inverseMatrix(matrix: number[][], ridge = 0): number[][] | null {
+function isSquareMatrix(matrix: number[][]): boolean {
   const size = matrix.length;
-  if (size === 0 || matrix.some((row) => row.length !== size)) return null;
+  return size > 0 && matrix.every((row) => row.length === size);
+}
 
-  const augmented = matrix.map((row, rowIndex) => [
+function augmentWithIdentity(matrix: number[][], ridge: number): number[][] {
+  const size = matrix.length;
+  return matrix.map((row, rowIndex) => [
     ...row.map((value, columnIndex) => value + (rowIndex === columnIndex ? ridge : 0)),
     ...Array.from({ length: size }, (_, columnIndex) => (rowIndex === columnIndex ? 1 : 0)),
   ]);
+}
+
+function findPivotRow(augmented: number[][], column: number): number {
+  let pivot = column;
+  for (let row = column + 1; row < augmented.length; row += 1) {
+    const candidate = Math.abs(augmented[row]?.[column] ?? 0);
+    const current = Math.abs(augmented[pivot]?.[column] ?? 0);
+    if (candidate > current) pivot = row;
+  }
+  return pivot;
+}
+
+function swapRows(matrix: number[][], first: number, second: number): void {
+  if (first === second) return;
+  const temp = matrix[first];
+  matrix[first] = matrix[second] ?? [];
+  matrix[second] = temp ?? [];
+}
+
+function normalizePivotRow(row: number[], pivotValue: number): void {
+  for (let index = 0; index < row.length; index += 1) {
+    row[index] = (row[index] ?? 0) / pivotValue;
+  }
+}
+
+function eliminatePivotColumn(
+  augmented: number[][],
+  pivotRowIndex: number,
+  column: number,
+): void {
+  const pivotRow = augmented[pivotRowIndex];
+  if (!pivotRow) return;
+
+  for (let rowIndex = 0; rowIndex < augmented.length; rowIndex += 1) {
+    if (rowIndex === pivotRowIndex) continue;
+    const target = augmented[rowIndex];
+    if (!target) continue;
+    const factor = target[column] ?? 0;
+    for (let index = 0; index < target.length; index += 1) {
+      target[index] = (target[index] ?? 0) - factor * (pivotRow[index] ?? 0);
+    }
+  }
+}
+
+function inverseMatrix(matrix: number[][], ridge = 0): number[][] | null {
+  if (!isSquareMatrix(matrix)) return null;
+  const size = matrix.length;
+  const augmented = augmentWithIdentity(matrix, ridge);
 
   for (let column = 0; column < size; column += 1) {
-    let pivot = column;
-    for (let row = column + 1; row < size; row += 1) {
-      if (Math.abs(augmented[row]?.[column] ?? 0) > Math.abs(augmented[pivot]?.[column] ?? 0)) {
-        pivot = row;
-      }
-    }
-
+    const pivot = findPivotRow(augmented, column);
     const pivotValue = augmented[pivot]?.[column] ?? 0;
     if (Math.abs(pivotValue) < 1e-10) return null;
 
-    if (pivot !== column) {
-      const temp = augmented[column];
-      augmented[column] = augmented[pivot] ?? [];
-      augmented[pivot] = temp ?? [];
-    }
-
+    swapRows(augmented, column, pivot);
     const active = augmented[column];
     if (!active) return null;
-    for (let index = 0; index < active.length; index += 1) {
-      active[index] = (active[index] ?? 0) / pivotValue;
-    }
 
-    for (let row = 0; row < size; row += 1) {
-      if (row === column) continue;
-      const target = augmented[row];
-      if (!target) continue;
-      const factor = target[column] ?? 0;
-      for (let index = 0; index < target.length; index += 1) {
-        target[index] = (target[index] ?? 0) - factor * (active[index] ?? 0);
-      }
-    }
+    normalizePivotRow(active, pivotValue);
+    eliminatePivotColumn(augmented, column, column);
   }
 
   return augmented.map((row) => row.slice(size));
@@ -447,51 +477,29 @@ function calculateVif(predictors: number[][], predictorIndex: number): number | 
   return roundTo(1 / (1 - rSquared), 4);
 }
 
-export function fitLinearRegression(args: {
-  outcomeName: string;
-  predictorNames: string[];
-  predictors: number[][];
-  outcome: number[];
-}): LinearModelResult | null {
-  const { outcomeName, predictorNames, predictors, outcome } = args;
-  const n = outcome.length;
-  const predictorCount = predictorNames.length;
-  if (
-    n !== predictors.length ||
-    predictorCount === 0 ||
-    predictors.some((row) => row.length !== predictorCount) ||
-    n <= predictorCount + 3
-  ) {
-    return null;
-  }
+function validRegressionInput(
+  predictors: number[][],
+  outcome: number[],
+  predictorCount: number,
+  minimumExtraRows: number,
+): boolean {
+  if (predictorCount === 0 || outcome.length !== predictors.length) return false;
+  if (outcome.length <= predictorCount + minimumExtraRows) return false;
+  return predictors.every((row) => row.length === predictorCount);
+}
 
-  const design = addIntercept(predictors);
-  const designT = transpose(design);
-  const xtx = multiplyMatrices(designT, design);
-  const xtxInverse = inverseMatrix(xtx);
-  if (!xtxInverse) return null;
-
-  const beta = multiplyMatrixVector(xtxInverse, multiplyMatrixVector(designT, outcome));
-  const fitted = multiplyMatrixVector(design, beta);
-  const residuals = outcome.map((value, index) => value - (fitted[index] ?? 0));
-  const residualDf = n - predictorCount - 1;
-  const residualSumSquares = residuals.reduce((sum, value) => sum + value * value, 0);
-  const outcomeMean = mean(outcome);
-  const totalSumSquares = outcome.reduce((sum, value) => sum + (value - outcomeMean) ** 2, 0);
-  const rSquared =
-    totalSumSquares <= EPSILON ? 0 : clamp(1 - residualSumSquares / totalSumSquares, 0, 1);
-  const adjustedRSquared =
-    1 - ((1 - rSquared) * (n - 1)) / Math.max(1, residualDf);
-  const rmse = Math.sqrt(residualSumSquares / Math.max(1, residualDf));
-
-  const meat = Array.from({ length: predictorCount + 1 }, () =>
-    new Array<number>(predictorCount + 1).fill(0),
-  );
+function hc3Meat(
+  design: number[][],
+  inverseXtX: number[][],
+  residuals: number[],
+): number[][] {
+  const width = design[0]?.length ?? 0;
+  const meat = Array.from({ length: width }, () => new Array<number>(width).fill(0));
 
   for (let rowIndex = 0; rowIndex < design.length; rowIndex += 1) {
     const row = design[rowIndex];
     if (!row) continue;
-    const leverageVector = multiplyMatrixVector(xtxInverse, row);
+    const leverageVector = multiplyMatrixVector(inverseXtX, row);
     const leverage = clamp(
       row.reduce((sum, value, index) => sum + value * (leverageVector[index] ?? 0), 0),
       0,
@@ -499,41 +507,122 @@ export function fitLinearRegression(args: {
     );
     const scaledResidual = (residuals[rowIndex] ?? 0) / Math.max(1e-6, 1 - leverage);
     const weight = scaledResidual * scaledResidual;
-
-    for (let i = 0; i < row.length; i += 1) {
-      for (let j = 0; j < row.length; j += 1) {
-        const meatRow = meat[i];
-        if (meatRow) meatRow[j] = (meatRow[j] ?? 0) + (row[i] ?? 0) * (row[j] ?? 0) * weight;
-      }
-    }
+    addOuterProduct(meat, row, weight);
   }
 
-  const robustCovariance = multiplyMatrices(multiplyMatrices(xtxInverse, meat), xtxInverse);
+  return meat;
+}
+
+function addOuterProduct(target: number[][], row: number[], weight: number): void {
+  for (let i = 0; i < row.length; i += 1) {
+    const targetRow = target[i];
+    if (!targetRow) continue;
+    for (let j = 0; j < row.length; j += 1) {
+      targetRow[j] =
+        (targetRow[j] ?? 0) + (row[i] ?? 0) * (row[j] ?? 0) * weight;
+    }
+  }
+}
+
+interface LinearFitCore {
+  beta: number[];
+  robustCovariance: number[][];
+  residualDf: number;
+  rSquared: number;
+  adjustedRSquared: number;
+  rmse: number;
+}
+
+function calculateLinearFit(
+  predictors: number[][],
+  outcome: number[],
+  predictorCount: number,
+): LinearFitCore | null {
+  const design = addIntercept(predictors);
+  const designT = transpose(design);
+  const inverseXtX = inverseMatrix(multiplyMatrices(designT, design));
+  if (!inverseXtX) return null;
+
+  const beta = multiplyMatrixVector(inverseXtX, multiplyMatrixVector(designT, outcome));
+  const fitted = multiplyMatrixVector(design, beta);
+  const residuals = outcome.map((value, index) => value - (fitted[index] ?? 0));
+  const residualDf = outcome.length - predictorCount - 1;
+  const residualSumSquares = residuals.reduce((sum, value) => sum + value * value, 0);
+  const outcomeMean = mean(outcome);
+  const totalSumSquares = outcome.reduce((sum, value) => sum + (value - outcomeMean) ** 2, 0);
+  const rSquared =
+    totalSumSquares <= EPSILON ? 0 : clamp(1 - residualSumSquares / totalSumSquares, 0, 1);
+  const adjustedRSquared =
+    1 - ((1 - rSquared) * (outcome.length - 1)) / Math.max(1, residualDf);
+  const rmse = Math.sqrt(residualSumSquares / Math.max(1, residualDf));
+  const meat = hc3Meat(design, inverseXtX, residuals);
+  const robustCovariance = multiplyMatrices(multiplyMatrices(inverseXtX, meat), inverseXtX);
+
+  return { beta, robustCovariance, residualDf, rSquared, adjustedRSquared, rmse };
+}
+
+function coefficientPValue(
+  estimate: number,
+  standardError: number,
+  residualDf: number,
+): number {
+  if (standardError <= EPSILON) return estimate === 0 ? 1 : 0;
+  const statistic = estimate / standardError;
+  return Math.min(1, 2 * (1 - studentTCdf(Math.abs(statistic), residualDf)));
+}
+
+function standardizedLinearEstimate(
+  index: number,
+  estimate: number,
+  outcomeSd: number,
+  predictorSds: number[],
+): number | null {
+  if (index === 0 || !Number.isFinite(outcomeSd) || outcomeSd <= EPSILON) return null;
+  const predictorSd = predictorSds[index - 1];
+  if (predictorSd === undefined || !Number.isFinite(predictorSd)) return null;
+  return (estimate * predictorSd) / outcomeSd;
+}
+
+function applyFdrToLinearCoefficients(coefficients: LinearCoefficient[]): void {
+  const adjusted = benjaminiHochberg(coefficients.slice(1).map((coefficient) => coefficient.pValue));
+  for (let index = 1; index < coefficients.length; index += 1) {
+    const coefficient = coefficients[index];
+    if (coefficient) coefficient.adjustedPValue = adjusted[index - 1] ?? 1;
+  }
+  const intercept = coefficients[0];
+  if (intercept) intercept.adjustedPValue = intercept.pValue;
+}
+
+function buildLinearCoefficients(args: {
+  beta: number[];
+  robustCovariance: number[][];
+  residualDf: number;
+  predictorNames: string[];
+  predictors: number[][];
+  outcome: number[];
+}): LinearCoefficient[] {
+  const { beta, robustCovariance, residualDf, predictorNames, predictors, outcome } = args;
   const critical = studentTCritical95(residualDf);
   const outcomeSd = sampleStandardDeviation(outcome);
   const predictorSds = predictorNames.map((_, index) =>
     sampleStandardDeviation(predictors.map((row) => row[index] ?? 0)),
   );
 
-  const rawPValues: number[] = [];
-  const coefficients = beta.map((estimate, index) => {
+  const coefficients = beta.map((estimate, index): LinearCoefficient => {
     const variance = robustCovariance[index]?.[index] ?? Number.NaN;
     const standardError = Math.sqrt(Math.max(0, variance));
-    const statistic =
-      standardError > EPSILON ? estimate / standardError : estimate === 0 ? 0 : Number.POSITIVE_INFINITY;
-    const pValue = Number.isFinite(statistic)
-      ? Math.min(1, 2 * (1 - studentTCdf(Math.abs(statistic), residualDf)))
-      : 0;
-    rawPValues.push(pValue);
-
-    const predictorSd = index === 0 ? null : predictorSds[index - 1] ?? Number.NaN;
-    const standardizedEstimate =
-      index === 0 || !Number.isFinite(outcomeSd) || outcomeSd <= EPSILON || !Number.isFinite(predictorSd ?? Number.NaN)
-        ? null
-        : (estimate * (predictorSd ?? 0)) / outcomeSd;
+    const pValue = coefficientPValue(estimate, standardError, residualDf);
+    const standardizedEstimate = standardizedLinearEstimate(
+      index,
+      estimate,
+      outcomeSd,
+      predictorSds,
+    );
+    const name = index === 0 ? "Intercept" : predictorNames[index - 1] ?? "Predictor";
+    const vif = index === 0 ? null : calculateVif(predictors, index - 1);
 
     return {
-      name: index === 0 ? "Intercept" : predictorNames[index - 1] ?? "Predictor",
+      name,
       estimate: roundTo(estimate),
       standardizedEstimate:
         standardizedEstimate === null ? null : roundTo(standardizedEstimate),
@@ -545,39 +634,70 @@ export function fitLinearRegression(args: {
         high: roundTo(estimate + critical * standardError),
         level: 0.95,
       },
-      vif: index === 0 ? null : calculateVif(predictors, index - 1),
+      vif,
     };
   });
 
-  const adjustedPValues = benjaminiHochberg(rawPValues.slice(1));
-  for (let index = 1; index < coefficients.length; index += 1) {
-    const coefficient = coefficients[index];
-    if (coefficient) coefficient.adjustedPValue = adjustedPValues[index - 1] ?? 1;
-  }
-  if (coefficients[0]) coefficients[0].adjustedPValue = coefficients[0]?.pValue ?? 1;
+  applyFdrToLinearCoefficients(coefficients);
+  return coefficients;
+}
 
+function linearModelWarnings(
+  n: number,
+  predictorCount: number,
+  rSquared: number,
+  coefficients: LinearCoefficient[],
+): string[] {
   const warnings: string[] = [];
   if (n < Math.max(20, 5 * (predictorCount + 1))) {
-    warnings.push("Small sample for the number of adjusted predictors; treat coefficient estimates as exploratory.");
+    warnings.push(
+      "Small sample for the number of adjusted predictors; treat coefficient estimates as exploratory.",
+    );
   }
-  const highVif = coefficients.some((coefficient) => (coefficient.vif ?? 0) >= 5);
-  if (highVif) {
-    warnings.push("One or more predictors have VIF >= 5, indicating potentially unstable estimates from multicollinearity.");
+  if (coefficients.some((coefficient) => (coefficient.vif ?? 0) >= 5)) {
+    warnings.push(
+      "One or more predictors have VIF >= 5, indicating potentially unstable estimates from multicollinearity.",
+    );
   }
   if (rSquared > 0.95) {
-    warnings.push("Very high model fit can indicate overfitting in a small repeated-measures dataset.");
+    warnings.push(
+      "Very high model fit can indicate overfitting in a small repeated-measures dataset.",
+    );
   }
+  return warnings;
+}
+
+export function fitLinearRegression(args: {
+  outcomeName: string;
+  predictorNames: string[];
+  predictors: number[][];
+  outcome: number[];
+}): LinearModelResult | null {
+  const { outcomeName, predictorNames, predictors, outcome } = args;
+  const predictorCount = predictorNames.length;
+  if (!validRegressionInput(predictors, outcome, predictorCount, 3)) return null;
+
+  const fit = calculateLinearFit(predictors, outcome, predictorCount);
+  if (!fit) return null;
+  const coefficients = buildLinearCoefficients({
+    beta: fit.beta,
+    robustCovariance: fit.robustCovariance,
+    residualDf: fit.residualDf,
+    predictorNames,
+    predictors,
+    outcome,
+  });
 
   return {
     outcome: outcomeName,
-    n,
+    n: outcome.length,
     predictorCount,
-    rSquared: roundTo(rSquared),
-    adjustedRSquared: roundTo(adjustedRSquared),
-    rmse: roundTo(rmse),
-    residualDf,
+    rSquared: roundTo(fit.rSquared),
+    adjustedRSquared: roundTo(fit.adjustedRSquared),
+    rmse: roundTo(fit.rmse),
+    residualDf: fit.residualDf,
     coefficients,
-    warnings,
+    warnings: linearModelWarnings(outcome.length, predictorCount, fit.rSquared, coefficients),
   };
 }
 
@@ -590,109 +710,153 @@ function sigmoid(value: number): number {
   return z / (1 + z);
 }
 
-export function fitLogisticRegression(args: {
-  outcomeName: string;
-  predictorNames: string[];
-  predictors: number[][];
-  outcome: number[];
-  maxIterations?: number;
-}): LogisticModelResult | null {
-  const { outcomeName, predictorNames, predictors, outcome } = args;
-  const maxIterations = args.maxIterations ?? 60;
-  const n = outcome.length;
-  const predictorCount = predictorNames.length;
-  const eventCount = outcome.filter((value) => value === 1).length;
+function linearPredictor(row: number[], beta: number[]): number {
+  return row.reduce((sum, value, index) => sum + value * (beta[index] ?? 0), 0);
+}
 
-  if (
-    n !== predictors.length ||
-    predictorCount === 0 ||
-    predictors.some((row) => row.length !== predictorCount) ||
-    outcome.some((value) => value !== 0 && value !== 1) ||
-    n <= predictorCount + 4 ||
-    eventCount < 5 ||
-    n - eventCount < 5
-  ) {
-    return null;
+interface LogisticSystem {
+  hessian: number[][];
+  gradient: number[];
+  probabilities: number[];
+}
+
+function buildLogisticSystem(
+  design: number[][],
+  outcome: number[],
+  beta: number[],
+): LogisticSystem {
+  const width = design[0]?.length ?? 0;
+  const probabilities = design.map((row) => sigmoid(linearPredictor(row, beta)));
+  const hessian = Array.from({ length: width }, () => new Array<number>(width).fill(0));
+  const gradient = new Array<number>(width).fill(0);
+
+  for (let rowIndex = 0; rowIndex < design.length; rowIndex += 1) {
+    const row = design[rowIndex];
+    if (!row) continue;
+    const probability = probabilities[rowIndex] ?? 0.5;
+    const residual = (outcome[rowIndex] ?? 0) - probability;
+    const weight = Math.max(1e-6, probability * (1 - probability));
+    accumulateLogisticRow(hessian, gradient, row, residual, weight);
   }
 
-  const design = addIntercept(predictors);
-  let beta = new Array<number>(predictorCount + 1).fill(0);
+  return { hessian, gradient, probabilities };
+}
+
+function accumulateLogisticRow(
+  hessian: number[][],
+  gradient: number[],
+  row: number[],
+  residual: number,
+  weight: number,
+): void {
+  for (let i = 0; i < row.length; i += 1) {
+    gradient[i] = (gradient[i] ?? 0) + (row[i] ?? 0) * residual;
+    const target = hessian[i];
+    if (!target) continue;
+    for (let j = 0; j < row.length; j += 1) {
+      target[j] =
+        (target[j] ?? 0) + (row[i] ?? 0) * weight * (row[j] ?? 0);
+    }
+  }
+}
+
+interface LogisticFitState {
+  beta: number[];
+  covariance: number[][];
+  converged: boolean;
+  iterations: number;
+  probabilities: number[];
+}
+
+function fitLogisticIrls(
+  design: number[][],
+  outcome: number[],
+  maxIterations: number,
+): LogisticFitState | null {
+  let beta = new Array<number>(design[0]?.length ?? 0).fill(0);
   let converged = false;
   let iterations = 0;
-  let covariance: number[][] | null = null;
 
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
     iterations = iteration + 1;
-    const probabilities = design.map((row) => sigmoid(
-      row.reduce((sum, value, index) => sum + value * (beta[index] ?? 0), 0),
-    ));
-    const weights = probabilities.map((probability) =>
-      Math.max(1e-6, probability * (1 - probability)),
-    );
-    const xtwx = Array.from({ length: predictorCount + 1 }, () =>
-      new Array<number>(predictorCount + 1).fill(0),
-    );
-    const gradient = new Array<number>(predictorCount + 1).fill(0);
-
-    for (let rowIndex = 0; rowIndex < design.length; rowIndex += 1) {
-      const row = design[rowIndex];
-      if (!row) continue;
-      const residual = (outcome[rowIndex] ?? 0) - (probabilities[rowIndex] ?? 0);
-      for (let i = 0; i < row.length; i += 1) {
-        gradient[i] = (gradient[i] ?? 0) + (row[i] ?? 0) * residual;
-        for (let j = 0; j < row.length; j += 1) {
-          const target = xtwx[i];
-          if (target) {
-            target[j] =
-              (target[j] ?? 0) +
-              (row[i] ?? 0) * (weights[rowIndex] ?? 0) * (row[j] ?? 0);
-          }
-        }
-      }
-    }
-
-    covariance = inverseMatrix(xtwx, 1e-8);
+    const system = buildLogisticSystem(design, outcome, beta);
+    const covariance = inverseMatrix(system.hessian, 1e-8);
     if (!covariance) return null;
-    const step = multiplyMatrixVector(covariance, gradient);
-    const next = beta.map((value, index) => value + clamp(step[index] ?? 0, -2, 2));
-    const maxChange = Math.max(...next.map((value, index) => Math.abs(value - (beta[index] ?? 0))));
-    beta = next;
 
+    const step = multiplyMatrixVector(covariance, system.gradient);
+    const next = beta.map((value, index) => value + clamp(step[index] ?? 0, -2, 2));
+    const maxChange = Math.max(
+      ...next.map((value, index) => Math.abs(value - (beta[index] ?? 0))),
+    );
+    beta = next;
     if (maxChange < 1e-7) {
       converged = true;
       break;
     }
   }
 
+  const finalSystem = buildLogisticSystem(design, outcome, beta);
+  const covariance = inverseMatrix(finalSystem.hessian, 1e-8);
   if (!covariance) return null;
 
-  const probabilities = design.map((row) => sigmoid(
-    row.reduce((sum, value, index) => sum + value * (beta[index] ?? 0), 0),
-  ));
-  const logLikelihood = outcome.reduce((sum, value, index) => {
+  return {
+    beta,
+    covariance,
+    converged,
+    iterations,
+    probabilities: finalSystem.probabilities,
+  };
+}
+
+function binaryLogLikelihood(outcome: number[], probabilities: number[]): number {
+  return outcome.reduce((sum, value, index) => {
     const probability = clamp(probabilities[index] ?? 0.5, 1e-10, 1 - 1e-10);
     return sum + value * Math.log(probability) + (1 - value) * Math.log(1 - probability);
   }, 0);
-  const nullProbability = clamp(eventCount / n, 1e-10, 1 - 1e-10);
-  const nullLogLikelihood = outcome.reduce(
-    (sum, value) =>
-      sum + value * Math.log(nullProbability) + (1 - value) * Math.log(1 - nullProbability),
-    0,
-  );
-  const pseudoRSquared =
-    Math.abs(nullLogLikelihood) <= EPSILON ? 0 : 1 - logLikelihood / nullLogLikelihood;
+}
 
-  const rawPValues: number[] = [];
-  const coefficients = beta.map((estimate, index) => {
-    const standardError = Math.sqrt(Math.max(0, covariance?.[index]?.[index] ?? 0));
+function logisticPseudoRSquared(
+  outcome: number[],
+  probabilities: number[],
+  eventCount: number,
+): number {
+  const n = outcome.length;
+  const logLikelihood = binaryLogLikelihood(outcome, probabilities);
+  const nullProbability = clamp(eventCount / n, 1e-10, 1 - 1e-10);
+  const nullProbabilities = new Array<number>(n).fill(nullProbability);
+  const nullLogLikelihood = binaryLogLikelihood(outcome, nullProbabilities);
+  if (Math.abs(nullLogLikelihood) <= EPSILON) return 0;
+  return 1 - logLikelihood / nullLogLikelihood;
+}
+
+function applyFdrToLogisticCoefficients(coefficients: LogisticCoefficient[]): void {
+  const adjusted = benjaminiHochberg(coefficients.slice(1).map((coefficient) => coefficient.pValue));
+  for (let index = 1; index < coefficients.length; index += 1) {
+    const coefficient = coefficients[index];
+    if (coefficient) coefficient.adjustedPValue = adjusted[index - 1] ?? 1;
+  }
+  const intercept = coefficients[0];
+  if (intercept) intercept.adjustedPValue = intercept.pValue;
+}
+
+function buildLogisticCoefficients(args: {
+  beta: number[];
+  covariance: number[][];
+  predictorNames: string[];
+  predictors: number[][];
+}): LogisticCoefficient[] {
+  const { beta, covariance, predictorNames, predictors } = args;
+  const coefficients = beta.map((estimate, index): LogisticCoefficient => {
+    const standardError = Math.sqrt(Math.max(0, covariance[index]?.[index] ?? 0));
     const z = standardError > EPSILON ? estimate / standardError : 0;
     const pValue = Math.min(1, 2 * (1 - normalCdf(Math.abs(z))));
-    rawPValues.push(pValue);
     const low = estimate - Z_95 * standardError;
     const high = estimate + Z_95 * standardError;
+    const name = index === 0 ? "Intercept" : predictorNames[index - 1] ?? "Predictor";
+    const vif = index === 0 ? null : calculateVif(predictors, index - 1);
 
     return {
-      name: index === 0 ? "Intercept" : predictorNames[index - 1] ?? "Predictor",
+      name,
       estimate: roundTo(estimate),
       standardError: roundTo(standardError),
       pValue: roundTo(pValue),
@@ -704,19 +868,24 @@ export function fitLogisticRegression(args: {
         high: roundTo(Math.exp(clamp(high, -20, 20))),
         level: 0.95,
       },
-      vif: index === 0 ? null : calculateVif(predictors, index - 1),
+      vif,
     };
   });
 
-  const adjustedPValues = benjaminiHochberg(rawPValues.slice(1));
-  for (let index = 1; index < coefficients.length; index += 1) {
-    const coefficient = coefficients[index];
-    if (coefficient) coefficient.adjustedPValue = adjustedPValues[index - 1] ?? 1;
-  }
-  if (coefficients[0]) coefficients[0].adjustedPValue = coefficients[0]?.pValue ?? 1;
+  applyFdrToLogisticCoefficients(coefficients);
+  return coefficients;
+}
 
+function logisticWarnings(
+  converged: boolean,
+  eventCount: number,
+  n: number,
+  coefficients: LogisticCoefficient[],
+): string[] {
   const warnings: string[] = [];
-  if (!converged) warnings.push("Logistic model did not fully converge; coefficient estimates are unstable.");
+  if (!converged) {
+    warnings.push("Logistic model did not fully converge; coefficient estimates are unstable.");
+  }
   if (Math.min(eventCount, n - eventCount) < 10) {
     warnings.push("Few outcome/non-outcome days are available; odds ratios may be imprecise.");
   }
@@ -724,18 +893,50 @@ export function fitLogisticRegression(args: {
     warnings.push("Very large coefficients suggest quasi-separation; interpret odds ratios cautiously.");
   }
   if (coefficients.some((coefficient) => (coefficient.vif ?? 0) >= 5)) {
-    warnings.push("One or more predictors have VIF >= 5, indicating potentially unstable adjusted estimates.");
+    warnings.push(
+      "One or more predictors have VIF >= 5, indicating potentially unstable adjusted estimates.",
+    );
   }
+  return warnings;
+}
+
+export function fitLogisticRegression(args: {
+  outcomeName: string;
+  predictorNames: string[];
+  predictors: number[][];
+  outcome: number[];
+  maxIterations?: number;
+}): LogisticModelResult | null {
+  const { outcomeName, predictorNames, predictors, outcome } = args;
+  const predictorCount = predictorNames.length;
+  const eventCount = outcome.filter((value) => value === 1).length;
+  const validBinaryOutcome = outcome.every((value) => value === 0 || value === 1);
+
+  if (!validRegressionInput(predictors, outcome, predictorCount, 4)) return null;
+  if (!validBinaryOutcome || eventCount < 5 || outcome.length - eventCount < 5) return null;
+
+  const design = addIntercept(predictors);
+  const fit = fitLogisticIrls(design, outcome, args.maxIterations ?? 60);
+  if (!fit) return null;
+
+  const coefficients = buildLogisticCoefficients({
+    beta: fit.beta,
+    covariance: fit.covariance,
+    predictorNames,
+    predictors,
+  });
+  const pseudoRSquared = logisticPseudoRSquared(outcome, fit.probabilities, eventCount);
 
   return {
     outcome: outcomeName,
-    n,
+    n: outcome.length,
     eventCount,
     predictorCount,
-    converged,
-    iterations,
+    converged: fit.converged,
+    iterations: fit.iterations,
     pseudoRSquared: roundTo(pseudoRSquared),
     coefficients,
-    warnings,
+    warnings: logisticWarnings(fit.converged, eventCount, outcome.length, coefficients),
   };
 }
+
