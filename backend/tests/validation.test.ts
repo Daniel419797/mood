@@ -38,4 +38,16 @@ describe("frontend contract validation", () => {
       }).success,
     ).toBe(true);
   });
+
+  it("rejects the retired Sugary food category for new writes", () => {
+    expect(
+      createEatingSchema.safeParse({
+        mealType: "Snack",
+        foodCategory: "Sugary",
+        portionRating: "Normal",
+        hungerBefore: 3,
+        timeOfDay: "Afternoon",
+      }).success,
+    ).toBe(false);
+  });
 });
