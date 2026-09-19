@@ -45,7 +45,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.get("/ready", async (_req, res) => {
-  await prisma.$queryRaw\`SELECT 1\`;
+  await prisma.$queryRaw`SELECT 1`;
   res.json({ status: "ready" });
 });
 
