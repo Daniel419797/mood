@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
+import { analyzeAdvancedAnalytics } from "../lib/advancedAnalytics.js";
 import {
   analyzeBehavioralInsights,
   buildEatingFrequency,
@@ -56,6 +57,7 @@ async function loadAnalyticsData(userId: string, range: "7d" | "30d" | "all") {
         foodCategory: true,
         portionRating: true,
         timeOfDay: true,
+        hungerBefore: true,
         loggedAt: true,
       },
     }),
@@ -89,12 +91,14 @@ router.get("/insights", async (req, res) => {
     query.threshold,
     rangeLabel(query.range),
   );
+  const advanced = analyzeAdvancedAnalytics(moods, eating);
 
   res.json({
     data: {
       insufficientData: false,
       insights: analysis.insights,
       emergingInsights: analysis.emergingInsights,
+      advanced,
       lastUpdated: new Date().toISOString(),
       patternThreshold: query.threshold,
       analyzedDays: analysis.analyzedDays,
