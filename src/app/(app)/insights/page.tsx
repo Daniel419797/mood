@@ -6,8 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/link-button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdvancedAnalyticsPanel } from "@/components/analytics/AdvancedAnalyticsPanel";
 import { insightsApi } from "@/services/insights";
-import type { InsightDTO } from "@/types";
+import type { AdvancedAnalyticsDTO, InsightDTO } from "@/types";
 import { CircleCheck, Lightbulb, ShieldAlert } from "lucide-react";
 
 function StrengthRing({ value }: { value: number }) {
@@ -62,7 +63,7 @@ function InsightPanel({ insight }: { insight: InsightDTO }) {
               </p>
               <p className="mt-1 text-base">{insight.supportingStat}</p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Association strength {Math.round(insight.strengthScore * 100)}% · {insight.totalDays} comparable days · adjusted p={pValueLabel(insight.pValue)}
+                Association strength {Math.round(insight.strengthScore * 100)}% · effect {insight.lift > 0 ? "+" : ""}{Math.round(insight.lift * 100)} pp (95% CI {Math.round(insight.effectConfidenceInterval.low * 100)} to {Math.round(insight.effectConfidenceInterval.high * 100)} pp) · {insight.totalDays} comparable days · adjusted p={pValueLabel(insight.pValue)}
               </p>
             </div>
 
@@ -94,6 +95,7 @@ export default function InsightsPage() {
         lastUpdated: string;
         patternThreshold: number;
         analyzedDays: number;
+        advanced: AdvancedAnalyticsDTO;
       }
     | { status: "error" }
   >({ status: "loading" });
@@ -119,6 +121,7 @@ export default function InsightsPage() {
           lastUpdated: data.lastUpdated,
           patternThreshold: data.patternThreshold,
           analyzedDays: data.analyzedDays,
+          advanced: data.advanced,
         });
       })
       .catch(() => setState({ status: "error" }));
@@ -267,6 +270,8 @@ export default function InsightsPage() {
           </CardContent>
         </Card>
       )}
+
+      <AdvancedAnalyticsPanel data={state.advanced} />
 
       <Card>
         <CardContent className="flex flex-col items-start justify-between gap-3 p-5 md:flex-row md:items-center">
