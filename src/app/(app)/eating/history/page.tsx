@@ -27,14 +27,14 @@ import { Pencil, Plus, Trash2, Utensils } from "lucide-react";
 const categoryColor: Record<string, string> = {
   Healthy: "bg-white text-black border border-black",
   Neutral: "bg-black text-white",
-  Sugary: "bg-white text-black border border-black",
   Junk: "bg-black text-white",
   Skipped: "bg-white text-black border border-black",
 };
 
 function EatingRow({ entry, onDeleted }: { entry: EatingLog; onDeleted: (id: string) => void }) {
   const [deleting, setDeleting] = useState(false);
-  const isSkippedMeal = entry.foodCategory === "Skipped";
+  const displayCategory = entry.foodCategory === "Sugary" ? "Junk" : entry.foodCategory;
+  const isSkippedMeal = displayCategory === "Skipped";
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -71,7 +71,7 @@ function EatingRow({ entry, onDeleted }: { entry: EatingLog; onDeleted: (id: str
 
           <div>
             <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Category</p>
-            <Badge className={categoryColor[entry.foodCategory] ?? ""}>{entry.foodCategory}</Badge>
+            <Badge className={categoryColor[displayCategory] ?? ""}>{displayCategory}</Badge>
           </div>
 
           {!isSkippedMeal && (
