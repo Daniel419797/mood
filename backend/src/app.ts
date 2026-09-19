@@ -4,6 +4,7 @@ import express from "express";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { allowedOrigins, env } from "./config.js";
+import { analyticsRouter } from "./routes/analytics.js";
 import { authRouter } from "./routes/auth.js";
 import { eatingRouter } from "./routes/eating.js";
 import { moodsRouter } from "./routes/moods.js";
@@ -44,13 +45,14 @@ app.get("/health", (_req, res) => {
 });
 
 app.get("/ready", async (_req, res) => {
-  await prisma.$queryRaw`SELECT 1`;
+  await prisma.$queryRaw\`SELECT 1\`;
   res.json({ status: "ready" });
 });
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/moods", moodsRouter);
 app.use("/api/v1/eating", eatingRouter);
+app.use("/api/v1/analytics", analyticsRouter);
 
 app.use(notFound);
 app.use(errorHandler);
