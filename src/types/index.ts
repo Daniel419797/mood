@@ -96,6 +96,9 @@ export type UpdateEatingLogRequestDTO = Partial<CreateEatingLogRequestDTO>;
 
 // ─── Insights ────────────────────────────────────────────────────────────────
 
+export type InsightEvidence = "strong" | "emerging";
+export type InsightDirection = "positive" | "negative";
+
 export interface InsightDTO {
   correlationId: string;
   headline: string;
@@ -103,7 +106,15 @@ export interface InsightDTO {
   dateRangeLabel: string;
   suggestion: string;
   strengthScore: number;
+  patternConsistency: number;
+  triggerOutcomeRate: number;
+  baselineOutcomeRate: number;
+  lift: number;
+  pValue: number;
+  evidence: InsightEvidence;
+  direction: InsightDirection;
   matchingDays: number;
+  triggerDays: number;
   totalDays: number;
 }
 
@@ -112,13 +123,17 @@ export interface InsightsResponseDTO {
     | {
         insufficientData: false;
         insights: InsightDTO[];
+        emergingInsights: InsightDTO[];
         lastUpdated: string;
-        threshold: number;
+        patternThreshold: number;
+        analyzedDays: number;
+        range: DashboardRange;
       }
     | {
         insufficientData: true;
         daysLogged: number;
         requiredDays: number;
+        range: DashboardRange;
       };
 }
 
