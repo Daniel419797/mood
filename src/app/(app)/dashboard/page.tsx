@@ -7,9 +7,6 @@ import {
   Line,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -109,25 +106,6 @@ export default function DashboardPage() {
     date: format(parseISO(p.date), "MMM d"),
   }));
 
-  const pieTotals = stressFoodCorrelation.reduce(
-    (acc, row) => {
-      acc.Healthy += row.Healthy;
-      acc.Neutral += row.Neutral;
-      acc.Sugary += row.Sugary;
-      acc.Junk += row.Junk;
-      acc.Skipped += row.Skipped;
-      return acc;
-    },
-    { Healthy: 0, Neutral: 0, Sugary: 0, Junk: 0, Skipped: 0 },
-  );
-
-  const pieData = [
-    { name: "Healthy", value: pieTotals.Healthy, color: "#ffffff" },
-    { name: "Neutral", value: pieTotals.Neutral, color: "#000000" },
-    { name: "Sugary", value: pieTotals.Sugary, color: "#ffffff" },
-    { name: "Junk", value: pieTotals.Junk, color: "#000000" },
-    { name: "Skipped", value: pieTotals.Skipped, color: "#ffffff" },
-  ].filter((item) => item.value > 0);
 
   return (
     <div className="space-y-6">
@@ -225,15 +203,18 @@ export default function DashboardPage() {
                 <div key={insight.correlationId} className="rounded-xl border bg-card p-4">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold">{insight.headline}</p>
-                    <Badge variant="secondary">{Math.round(insight.strengthScore * 100)}%</Badge>
+                    <Badge variant="secondary">{Math.round(insight.patternConsistency * 100)}% consistency</Badge>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{insight.supportingStat}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {insight.evidence === "strong" ? "Strong evidence" : "Emerging pattern"} · Association {Math.round(insight.strengthScore * 100)}%
+                  </p>
                   <p className="mt-4 border-t pt-3 text-sm">{insight.suggestion}</p>
                 </div>
               ))
             ) : (
               <div className="rounded-xl border p-6 text-sm text-muted-foreground">
-                Insights will appear after sufficient logs are available.
+                Patterns will appear as comparable days accumulate.
               </div>
             )}
             <div className="text-right">
@@ -269,32 +250,26 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Stress vs Food Category</CardTitle>
+            <CardTitle className="text-base">Meals by Stress Level</CardTitle>
           </CardHeader>
           <CardContent>
-            {pieData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-10">No data for this period</p>
+            {stressFoodCorrelation.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">No paired mood and meal data for this period</p>
             ) : (
-              <>
-                <ResponsiveContainer width="100%" height={210}>
-                  <PieChart>
-                    <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={45} outerRadius={82}>
-                      {pieData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                  {pieData.map((item) => (
-                    <div key={item.name} className="flex items-center gap-2 text-muted-foreground">
-                      <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                      {item.name}
-                    </div>
-                  ))}
-                </div>
-              </>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={stressFoodCorrelation}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="stressLevel" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="Healthy" stackId="food" fill="#111827" />
+                  <Bar dataKey="Neutral" stackId="food" fill="#4b5563" />
+                  <Bar dataKey="Sugary" stackId="food" fill="#6b7280" />
+                  <Bar dataKey="Junk" stackId="food" fill="#9ca3af" />
+                  <Bar dataKey="Skipped" stackId="food" fill="#d1d5db" />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
@@ -304,7 +279,7 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="flex items-center gap-2 p-5 text-sm text-muted-foreground">
             <Lightbulb className="h-4 w-4" />
-            Keep logging daily to unlock statistically stronger insights.
+            Keep logging daily to make pattern estimates more reliable.
           </CardContent>
         </Card>
       )}
