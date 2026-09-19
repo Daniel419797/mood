@@ -318,7 +318,7 @@ const patterns: PatternSpec[] = [
     positiveHeadline: "Night-eating days align with more junk-food choices",
     negativeHeadline: "Night-eating days align with fewer junk-food choices",
     positiveSuggestion: "Compare nights with a planned evening meal against unplanned late eating.",
-    negativeSuggestion: "Sugary/junk choices are currently less common on night-eating days. Keep logging to test whether that remains true.",
+    negativeSuggestion: "Junk-food choices are currently less common on night-eating days. Keep logging to test whether that remains true.",
     eligible: (day) => day.eatingCount > 0,
     trigger: (day) => day.nightEating,
     outcome: (day) => day.junkFood,
