@@ -50,6 +50,7 @@ describe("behavioral analytics", () => {
     expect(insight?.patternConsistency).toBe(1);
     expect(insight?.strengthScore).toBe(1);
     expect(insight?.pValue).toBeLessThan(0.05);
+    expect(insight?.effectConfidenceInterval.low).toBeGreaterThan(0);
   });
 
   it("surfaces useful below-threshold relationships as emerging instead of hiding them", () => {
