@@ -288,6 +288,7 @@ export interface DashboardResponseDTO {
     eatingFrequency: EatingFrequencyPoint[];
     stressFoodCorrelation: StressFoodPoint[];
     topInsights: InsightDTO[];
+    earlySignals: ContinuousCorrelationDTO[];
   };
 }
 
