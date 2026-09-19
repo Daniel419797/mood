@@ -189,7 +189,9 @@ export function AdvancedAnalyticsPanel({ data }: Readonly<{ data: AdvancedAnalyt
   const meaningfulContinuous = data.continuousCorrelations.filter(
     (result) => result.evidence !== "weak",
   );
+  const earlyContinuous = data.continuousCorrelations.filter((result) => result.evidence === "weak").slice(0, 3);
   const meaningfulLagged = data.laggedEffects.filter((result) => result.evidence !== "weak");
+  const earlyLagged = data.laggedEffects.filter((result) => result.evidence === "weak").slice(0, 2);
 
   return (
     <div className="space-y-6">
@@ -259,11 +261,23 @@ export function AdvancedAnalyticsPanel({ data }: Readonly<{ data: AdvancedAnalyt
               <CorrelationCard key={result.id} result={result} />
             ))}
           </div>
+        ) : earlyContinuous.length > 0 ? (
+          <div className="space-y-3">
+            <Card>
+              <CardContent className="p-4 text-sm text-muted-foreground">
+                Your first seven tracked days are enough to show early signals, but not enough to call them stable. These are shown for transparency and should be treated as preliminary.
+              </CardContent>
+            </Card>
+            <div className="grid gap-3 lg:grid-cols-2">
+              {earlyContinuous.map((result) => (
+                <CorrelationCard key={result.id} result={result} title={"Early signal: " + result.xLabel + " ↔ " + result.yLabel} />
+              ))}
+            </div>
+          </div>
         ) : (
           <Card>
             <CardContent className="p-5 text-sm text-muted-foreground">
-              No continuous relationship is stable enough to label emerging yet. Weak estimates are
-              retained by the API but are intentionally not promoted in the interface.
+              Seven tracked days are available, but the recorded values do not vary enough to estimate a correlation yet. Continue logging normally so the model has contrast to analyze.
             </CardContent>
           </Card>
         )}
@@ -319,6 +333,17 @@ export function AdvancedAnalyticsPanel({ data }: Readonly<{ data: AdvancedAnalyt
                 result={result}
                 title={result.directionLabel}
                 subtitle={result.n + " consecutive-day pairs"}
+              />
+            ))}
+          </div>
+        ) : earlyLagged.length > 0 ? (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {earlyLagged.map((result) => (
+              <CorrelationCard
+                key={result.id}
+                result={result}
+                title={"Early signal: " + result.directionLabel}
+                subtitle={result.n + " consecutive-day pairs · preliminary"}
               />
             ))}
           </div>
