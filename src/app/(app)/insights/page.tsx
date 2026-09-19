@@ -62,7 +62,7 @@ function InsightPanel({ insight }: { insight: InsightDTO }) {
               </p>
               <p className="mt-1 text-base">{insight.supportingStat}</p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Association strength {Math.round(insight.strengthScore * 100)}% · {insight.totalDays} comparable days · Fisher p={pValueLabel(insight.pValue)}
+                Association strength {Math.round(insight.strengthScore * 100)}% · {insight.totalDays} comparable days · adjusted p={pValueLabel(insight.pValue)}
               </p>
             </div>
 
