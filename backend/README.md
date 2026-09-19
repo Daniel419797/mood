@@ -21,13 +21,39 @@ Behavioral analysis runs on the server so every client receives the same calcula
 
 ## Behavioral analytics
 
-The analytics engine groups logs by calendar day and compares repeated conditions across comparable days. It evaluates relationships involving stress, sleep, mood, workload, energy, meal timing, food category, skipped meals, and portion size.
+The analytics engine now has four complementary layers.
 
-For each analyzable relationship, the service reports pattern consistency, trigger and comparison outcome rates, signed rate difference (lift), phi association strength, and a two-sided Fisher exact-test p-value. The p-value is conservatively adjusted for the number of tested relationships before strong evidence is assigned.
+### 1. Binary repeated-pattern analysis
 
-Strong evidence requires sufficient trigger/comparison observations, meaningful association strength, and an adjusted p-value at or below 0.05. Other useful relationships are labeled emerging. Results are observational associations and do not claim causation.
+Daily trigger/control comparisons still cover relationships such as high stress versus sugary/junk food, short sleep versus low mood, workload versus stress, skipped meals, large portions, and night eating.
 
-The user-configurable threshold is a pattern consistency threshold, not a statistical-significance threshold. Patterns below that display threshold can still be returned as emerging patterns rather than being silently hidden.
+For each analyzable relationship the service reports pattern consistency, trigger and comparison outcome rates, signed rate difference, a 95% rate-difference confidence interval, phi association strength, and a two-sided Fisher exact-test p-value. The categorical-pattern family uses conservative multiplicity correction before strong evidence is assigned.
+
+### 2. Continuous-variable analysis
+
+The engine keeps the original numeric information where possible instead of reducing every variable to a threshold. It calculates Pearson and Spearman correlations for continuous day-level measures such as mood, stress, energy, sleep hours, workload level, hunger, food-quality share, and night-eating share.
+
+Each Pearson estimate includes a 95% Fisher-z confidence interval. P-values inside the continuous-correlation family are controlled using Benjamini-Hochberg false-discovery-rate adjustment.
+
+### 3. Confounder-adjusted multivariable models
+
+Multiple linear regression estimates adjusted same-day associations for mood, stress, and energy while holding other recorded variables constant. Linear-model uncertainty uses HC3 heteroskedasticity-robust standard errors, 95% confidence intervals, FDR-adjusted coefficient p-values, standardized coefficients, model fit metrics, and variance-inflation factors.
+
+A multivariable logistic model estimates the odds of a sugary/junk-food day while adjusting for stress, mood, sleep, and workload. It reports odds ratios, 95% confidence intervals, adjusted p-values, convergence state, pseudo-R², and collinearity diagnostics.
+
+### 4. Lagged analysis
+
+The service evaluates one-calendar-day temporal relationships, including sleep to next-day mood/stress/energy, stress to next-day mood/food choice, workload to next-day mood/stress, food choice to next-day mood, and night eating to next-day energy.
+
+Lagged results use Pearson/Spearman estimates, 95% confidence intervals, and FDR adjustment. Temporal ordering improves interpretation but still does not establish causality.
+
+### Inference safeguards
+
+The API returns an inference-quality report containing tracked-day coverage, paired-data coverage, model warnings, multiplicity method, uncertainty method, and explicit limitations. It labels analyses as limited, exploratory, or research-oriented based on data sufficiency and stability.
+
+The system never labels itself clinically validated. Clinical-grade validity cannot be created by statistical code alone; it requires external validation, protocol review, and prospective evidence.
+
+The user-configurable threshold is a pattern consistency display threshold, not a statistical-significance threshold. Below-threshold relationships can still appear as emerging patterns rather than being silently hidden.
 
 ## Stack
 
