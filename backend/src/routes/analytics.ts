@@ -120,6 +120,7 @@ router.get("/dashboard", async (req, res) => {
     query.threshold,
     rangeLabel(query.range),
   );
+  const advanced = analyzeAdvancedAnalytics(moods, eating);
 
   const summary = {
     totalMoodLogs: moods.length,
@@ -141,6 +142,7 @@ router.get("/dashboard", async (req, res) => {
       eatingFrequency: buildEatingFrequency(eating),
       stressFoodCorrelation: buildStressFoodCorrelation(moods, eating),
       topInsights,
+      earlySignals: advanced.continuousCorrelations.slice(0, 3),
     },
   });
 });
