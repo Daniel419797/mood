@@ -67,7 +67,7 @@ export type UpdateMoodLogRequestDTO = Partial<CreateMoodLogRequestDTO>;
 // ─── Eating Logs ─────────────────────────────────────────────────────────────
 
 export type MealType = "Breakfast" | "Lunch" | "Dinner" | "Snack" | "Other";
-export type FoodCategory = "Healthy" | "Neutral" | "Sugary" | "Junk" | "Skipped";
+export type FoodCategory = "Healthy" | "Junk" | "Neutral" | "Skipped";
 export type PortionRating = "Small" | "Normal" | "Large" | "Binge";
 export type TimeOfDay = "Morning" | "Afternoon" | "Evening" | "Night";
 
@@ -276,7 +276,6 @@ export interface StressFoodPoint {
   stressLevel: string;
   Healthy: number;
   Neutral: number;
-  Sugary: number;
   Junk: number;
   Skipped: number;
 }
