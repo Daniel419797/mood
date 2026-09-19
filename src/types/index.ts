@@ -68,6 +68,7 @@ export type UpdateMoodLogRequestDTO = Partial<CreateMoodLogRequestDTO>;
 
 export type MealType = "Breakfast" | "Lunch" | "Dinner" | "Snack" | "Other";
 export type FoodCategory = "Healthy" | "Junk" | "Neutral" | "Skipped";
+export type StoredFoodCategory = FoodCategory | "Sugary";
 export type PortionRating = "Small" | "Normal" | "Large" | "Binge";
 export type TimeOfDay = "Morning" | "Afternoon" | "Evening" | "Night";
 
@@ -75,7 +76,7 @@ export interface EatingLog {
   id: string;
   userId: string;
   mealType: MealType;
-  foodCategory: FoodCategory;
+  foodCategory: StoredFoodCategory;
   portionRating: PortionRating;
   hungerBefore: number;
   timeOfDay: TimeOfDay;
