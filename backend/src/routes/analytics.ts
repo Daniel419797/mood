@@ -7,6 +7,7 @@ import {
   buildMoodTrend,
   buildStressFoodCorrelation,
   countTrackedDays,
+  normalizeFoodCategory,
   topCategory,
 } from "../lib/analytics.js";
 import { authenticatedUserId, requireAuth } from "../middleware/auth.js";
@@ -125,7 +126,7 @@ router.get("/dashboard", async (req, res) => {
     totalEatingLogs: eating.length,
     daysTracked: countTrackedDays(moods, eating),
     topMoodLabel: topCategory(moods.map((mood) => mood.moodLabel)),
-    topFoodCategory: topCategory(eating.map((meal) => meal.foodCategory)),
+    topFoodCategory: topCategory(eating.map((meal) => normalizeFoodCategory(meal.foodCategory))),
   };
 
   const topInsights =
