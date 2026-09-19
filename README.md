@@ -53,7 +53,7 @@ Repeated behavioural patterns are compared against non-trigger days rather than 
 
 Examples include:
 
-- high stress vs sugary/junk food;
+- high stress vs junk food;
 - short sleep vs low mood;
 - short sleep vs high stress;
 - high workload vs stress;
@@ -63,7 +63,7 @@ Examples include:
 - low mood vs food choice;
 - stress vs skipped meals;
 - stress vs large/binge portions;
-- night eating vs sugary/junk food;
+- night eating vs junk food;
 - healthy-meal days vs mood.
 
 For eligible patterns, the engine calculates:
@@ -78,7 +78,7 @@ For eligible patterns, the engine calculates:
 - pattern consistency;
 - evidence classification.
 
-The user's threshold setting is a **pattern-consistency display threshold**, not a statistical-significance threshold.
+The user's threshold setting is a **pattern-consistency display threshold**, not a statistical-significance threshold. After 7 distinct tracked days, preliminary continuous signals can be shown even when no categorical pattern is strong enough to pass the display filter.
 
 #### 2. Continuous-variable analysis
 
@@ -117,7 +117,7 @@ They report:
 - RMSE;
 - model warnings.
 
-A multivariable logistic model also estimates the odds of a sugary/junk-food day while adjusting simultaneously for stress, mood, sleep, and workload.
+A multivariable logistic model also estimates the odds of a junk-food day while adjusting simultaneously for stress, mood, sleep, and workload.
 
 It reports:
 
@@ -481,13 +481,14 @@ Both use the 1–5 scale captured by the mood form.
 
 The eating-frequency chart counts logged meals by food category for the selected range.
 
-Categories include:
+Categories exposed to users are:
 
 - Healthy;
-- Neutral;
-- Sugary;
 - Junk;
+- Neutral;
 - Skipped.
+
+Older records created with the retired `Sugary` category are preserved for backward compatibility but are normalized to `Junk` in the UI and analytics. New writes cannot create `Sugary` records.
 
 ### Meals by Stress Level
 
