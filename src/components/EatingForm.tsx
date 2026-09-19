@@ -24,7 +24,7 @@ import { Check, CircleHelp } from "lucide-react";
 
 const schema = z.object({
   mealType: z.enum(["Breakfast", "Lunch", "Dinner", "Snack", "Other"]),
-  foodCategory: z.enum(["Healthy", "Neutral", "Sugary", "Junk", "Skipped"]),
+  foodCategory: z.enum(["Healthy", "Junk", "Neutral", "Skipped"]),
   portionRating: z.enum(["Small", "Normal", "Large", "Binge"]),
   hungerBefore: z.coerce.number().int().min(1).max(5),
   timeOfDay: z.enum(["Morning", "Afternoon", "Evening", "Night"]),
