@@ -138,7 +138,7 @@ function buildDailyDataset(
     eatingMap.set(key, list);
   }
 
-  const dates = Array.from(new Set([...moodMap.keys(), ...eatingMap.keys()])).sort();
+  const dates = Array.from(new Set([...moodMap.keys(), ...eatingMap.keys()])).sort((a, b) => a.localeCompare(b));
 
   return dates.map((date) => {
     const moodRows = moodMap.get(date) ?? [];
@@ -486,7 +486,7 @@ function completeRows(
   for (const row of rows) {
     const y = numericValue(row, outcomeKey);
     const x = predictorKeys.map((key) => numericValue(row, key));
-    if (y === null || x.some((value) => value === null)) continue;
+    if (y === null || x.includes(null)) continue;
     outcome.push(y);
     predictors.push(x.map((value) => value ?? 0));
   }
@@ -587,7 +587,7 @@ function buildLogisticModels(rows: DailyObservation[]): LogisticModelReport[] {
   for (const row of rows) {
     const unhealthy = numericValue(row, "unhealthyMealRate");
     const x = predictorDefinitions.map((definition) => numericValue(row, definition.key));
-    if (unhealthy === null || x.some((value) => value === null)) continue;
+    if (unhealthy === null || x.includes(null)) continue;
     predictors.push(x.map((value) => value ?? 0));
     outcome.push(unhealthy > 0 ? 1 : 0);
   }
