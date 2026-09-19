@@ -2,35 +2,23 @@
 
 ## Scope
 
-The backend exists only to support the current MindfulMorsel frontend.
+The backend supports the MindfulMorsel frontend and owns authenticated persistence plus derived analytics.
 
-It provides:
-
-- email/password accounts;
-- Google sign-in;
-- access and refresh sessions;
-- profile name updates;
-- password changes for password-based accounts;
-- account deletion;
-- mood log persistence;
-- eating log persistence;
-- server-side ownership enforcement.
-
-Dashboard summaries and behavioral insight calculations are intentionally not backend endpoints because the current frontend already computes them from the authenticated user's mood and eating logs.
+It provides email/password accounts, Google sign-in, access and refresh sessions, profile updates, password changes, account deletion, mood/eating persistence, ownership enforcement, dashboard aggregation, and behavioral pattern analysis.
 
 ## Core entities
 
 ### User
 
-Owns all private records. `passwordHash` is nullable for Google-only accounts. `googleSub` stores the stable Google account subject when Google sign-in is linked.
+Owns all private records. passwordHash is nullable for Google-only accounts. googleSub stores the stable Google account subject when Google sign-in is linked.
 
 ### MoodLog
 
-Stores exactly the fields submitted and rendered by the frontend: mood score/label, stress, energy, sleep hours, workload, notes, and server-generated log time.
+Stores mood score/label, stress, energy, sleep hours, workload, notes, and the log timestamp.
 
 ### EatingLog
 
-Stores exactly the fields submitted and rendered by the frontend: meal type, food category, portion, hunger-before score, time of day, description, and server-generated log time.
+Stores meal type, food category, portion, hunger-before score, time of day, description, and the log timestamp.
 
 ### RefreshSession
 
@@ -38,14 +26,40 @@ Stores only a SHA-256 hash of the random refresh token. The raw refresh token ex
 
 ## Ownership invariant
 
-Every mood/eating read, update, and delete includes the authenticated `userId` in the database predicate. The API never returns all users' records for browser-side filtering.
+Every mood/eating read, update, delete, dashboard query, and insight query is scoped by the authenticated userId. Analytics never mix data between users.
+
+## Analytics contract
+
+Analytics are generated server-side from the user's records in the requested 7d, 30d, or all range.
+
+The engine groups records into daily aggregates and requires at least seven tracked days before the dedicated insights view is unlocked.
+
+The analytics contract includes:
+
+- categorical trigger/control comparisons with rate differences, 95% confidence intervals, phi association strength, Fisher exact tests, and multiplicity correction;
+- continuous Pearson and Spearman correlations with Fisher-z 95% confidence intervals and Benjamini-Hochberg false-discovery-rate adjustment;
+- multivariable linear regression with HC3 heteroskedasticity-robust standard errors, 95% coefficient intervals, standardized coefficients, FDR-adjusted p-values, fit metrics, and VIF diagnostics;
+- multivariable logistic regression with adjusted odds ratios, 95% intervals, FDR-adjusted p-values, convergence diagnostics, pseudo-R², and VIF diagnostics;
+- one-day lagged analysis on consecutive calendar-day pairs with confidence intervals and FDR control;
+- an inference-quality report describing data coverage, model warnings, multiplicity handling, uncertainty estimation, and methodological limitations.
+
+Below-threshold relationships can still be returned as emerging patterns instead of being treated as nonexistent. The profile slider controls pattern consistency only; it is deliberately not described as statistical significance or confidence.
+
+The analysis classification can become research-oriented when the dataset is sufficiently complete and stable, but the API always reports clinicalValidated=false. Clinical validity requires independent validation and prospective study outside the software itself.
+
+Analytics are observational and must not be presented as causal findings.
 
 ## API prefix
 
-`/api/v1`
+/api/v1
 
-See `backend/README.md` for the exact routes used by the frontend.
+Analytics endpoints:
+
+- GET /api/v1/analytics/insights
+- GET /api/v1/analytics/dashboard
+
+See backend/README.md for the complete route list.
 
 ## Deployment model
 
-One Node.js API process plus one PostgreSQL database is sufficient. No Redis, queues, WebSockets, microservices, analytics service, or AI service is required by the current frontend.
+One Node.js API process plus one PostgreSQL database is sufficient for the current architecture. The analytics engine is part of the API process and does not require a separate analytics service, queue, Redis instance, WebSocket service, or AI model.

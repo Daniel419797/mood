@@ -75,3 +75,8 @@ export const logQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 });
+
+export const analyticsQuerySchema = z.object({
+  range: z.enum(["7d", "30d", "all"]).default("30d"),
+  threshold: z.coerce.number().int().min(40).max(95).default(60),
+});

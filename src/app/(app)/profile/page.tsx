@@ -225,7 +225,7 @@ function InsightSettingsSection() {
 
   const saveThreshold = () => {
     window.localStorage.setItem(INSIGHT_THRESHOLD_KEY, String(threshold));
-    toast.success("Insight threshold saved.");
+    toast.success("Pattern threshold saved.");
   };
 
   return (
@@ -235,9 +235,9 @@ function InsightSettingsSection() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <p className="text-sm font-medium">Significance threshold: {threshold}%</p>
+          <p className="text-sm font-medium">Pattern consistency threshold: {threshold}%</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Higher thresholds show only stronger correlations.
+            Higher values require a repeated pattern to occur more consistently before it appears in the main insights list.
           </p>
         </div>
         <input
@@ -250,8 +250,8 @@ function InsightSettingsSection() {
           className="h-2 w-full accent-foreground"
         />
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>40% (more insights)</span>
-          <span>95% (strongest only)</span>
+          <span>40% (broader)</span>
+          <span>95% (strictest)</span>
         </div>
         <Button size="sm" onClick={saveThreshold}>Save Threshold</Button>
       </CardContent>
