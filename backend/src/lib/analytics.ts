@@ -563,9 +563,12 @@ export function buildStressFoodCorrelation(moods: AnalyticsMoodLog[], eating: An
     buckets.set(stressLevel, bucket);
   }
 
-  return Array.from(buckets.entries())
-    .sort((a, b) => Number(a[0]) - Number(b[0]))
-    .map(([stressLevel, values]) => ({ stressLevel, ...values }));
+  if (buckets.size === 0) return [];
+
+  return ["1", "2", "3", "4", "5"].map((stressLevel) => ({
+    stressLevel,
+    ...(buckets.get(stressLevel) ?? { ...empty }),
+  }));
 }
 
 export function topCategory<T extends string>(values: T[]): T | null {
