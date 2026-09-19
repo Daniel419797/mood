@@ -94,8 +94,11 @@ describe("behavioral analytics", () => {
       mood(2, { stressLevel: 2 }),
     ];
     expect(buildStressFoodCorrelation(moods, eating)).toEqual([
+      { stressLevel: "1", Healthy: 0, Junk: 0, Neutral: 0, Skipped: 0 },
       { stressLevel: "2", Healthy: 1, Junk: 0, Neutral: 0, Skipped: 0 },
+      { stressLevel: "3", Healthy: 0, Junk: 0, Neutral: 0, Skipped: 0 },
       { stressLevel: "4", Healthy: 0, Junk: 2, Neutral: 0, Skipped: 0 },
+      { stressLevel: "5", Healthy: 0, Junk: 0, Neutral: 0, Skipped: 0 },
     ]);
   });
 
