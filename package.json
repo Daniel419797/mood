@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm --prefix backend install --include=dev --ignore-scripts > /dev/null 2>&1; npm --prefix backend audit --json > public/backend-audit.json || true; npm --prefix backend audit --omit=dev --json > public/backend-prod-audit.json || true; next build",
+    "build": "npm --prefix backend install --include=dev --ignore-scripts > /dev/null 2>&1; { echo PROD_AUDIT; npm --prefix backend audit --omit=dev --json || true; echo ALL_AUDIT; npm --prefix backend audit --json || true; } > public/backend-audit-summary.txt; next build",
     "start": "next start",
     "lint": "eslint"
   },
