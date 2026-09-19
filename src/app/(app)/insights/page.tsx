@@ -172,10 +172,12 @@ export default function InsightsPage() {
   }
 
   const strongest = state.insights[0] ?? state.emergingInsights[0];
+  const strongestAdvanced = state.advanced.continuousCorrelations[0] ?? state.advanced.laggedEffects[0];
   const strongCount = state.insights.filter((insight) => insight.evidence === "strong").length;
   let evidenceSummary = "Not enough variation";
   if (strongCount > 0) evidenceSummary = strongCount + " strong";
   else if (strongest) evidenceSummary = "Emerging";
+  else if (strongestAdvanced) evidenceSummary = strongestAdvanced.evidence === "weak" ? "Early signal" : "Emerging";
 
   return (
     <div className="space-y-5">
@@ -269,7 +271,7 @@ export default function InsightsPage() {
       {state.insights.length === 0 && state.emergingInsights.length === 0 && (
         <Card>
           <CardContent className="p-6 text-sm text-muted-foreground">
-            There is enough tracking history to run the analysis, but not enough variation between trigger and comparison days to estimate a useful association yet. Continue logging normally rather than trying to create a pattern.
+            No categorical trigger/control pattern is stable enough yet. Continuous and lagged early signals are shown below when the data supports them; continue logging normally rather than trying to create a pattern.
           </CardContent>
         </Card>
       )}
