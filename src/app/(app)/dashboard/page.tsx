@@ -321,7 +321,10 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Meals by Stress Level</CardTitle>
+            <CardTitle className="text-base">Meal Categories by Stress Level</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Stress score: 1 = low, 5 = high. Each stacked bar counts meals logged on days with that average stress level.
+            </p>
           </CardHeader>
           <CardContent>
             {stressFoodCorrelation.length === 0 ? (
