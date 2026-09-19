@@ -85,7 +85,7 @@ export default function DashboardPage() {
         <Sparkles className="h-12 w-12 text-muted-foreground" />
         <h2 className="font-heading text-2xl">Your dashboard will populate after your first logs</h2>
         <p className="text-muted-foreground max-w-sm">
-          Start logging your mood and meals. After 7 days of data, pattern insights will appear here.
+          Start logging your mood and meals. Early signals become available after 7 distinct tracked days; stronger patterns need repeated variation.
         </p>
         <div className="flex gap-2">
           <LinkButton href="/mood/new">
@@ -265,7 +265,6 @@ export default function DashboardPage() {
                   <Legend />
                   <Bar dataKey="Healthy" stackId="food" fill="#111827" />
                   <Bar dataKey="Neutral" stackId="food" fill="#4b5563" />
-                  <Bar dataKey="Sugary" stackId="food" fill="#6b7280" />
                   <Bar dataKey="Junk" stackId="food" fill="#9ca3af" />
                   <Bar dataKey="Skipped" stackId="food" fill="#d1d5db" />
                 </BarChart>
