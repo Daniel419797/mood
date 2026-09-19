@@ -49,8 +49,7 @@ describe("advanced behavioral analytics", () => {
         loggedAt: loggedAt(day),
       });
 
-      const foodChoiceNoise = ((day * 5) % 7) * 0.22;
-      const unhealthy = stress + foodChoiceNoise >= 3.75;
+      const unhealthy = day % 3 === 0 || day % 7 === 0 || (stress >= 4 && day % 5 === 0);
       eating.push({
         foodCategory: unhealthy ? "Junk" : "Healthy",
         portionRating: stress >= 4 ? "Large" : "Normal",
