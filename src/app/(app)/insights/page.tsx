@@ -173,6 +173,9 @@ export default function InsightsPage() {
 
   const strongest = state.insights[0] ?? state.emergingInsights[0];
   const strongCount = state.insights.filter((insight) => insight.evidence === "strong").length;
+  let evidenceSummary = "Not enough variation";
+  if (strongCount > 0) evidenceSummary = strongCount + " strong";
+  else if (strongest) evidenceSummary = "Emerging";
 
   return (
     <div className="space-y-5">
@@ -219,7 +222,7 @@ export default function InsightsPage() {
                 Evidence
               </p>
               <p className="font-medium">
-                {strongCount > 0 ? strongCount + " strong" : strongest ? "Emerging" : "Not enough variation"}
+                {evidenceSummary}
               </p>
             </div>
           </CardContent>
